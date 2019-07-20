@@ -203,11 +203,10 @@ function console.update(dt)
 	local keys = priv.keypressed(dt)
 	
 	if priv.contains(keys, "return") then
-		local text, parse, output = console.return(console.input)
+		local output, text = console.readwrite(console.input)
 		text  = text or console.input
-		parse = parse or true
 		
-		if parse then
+		if output == nil then
 			console.text[#console.text + 1] = "> " .. text
 			local func, err = loadstring(text)
 			if err then
@@ -216,7 +215,6 @@ function console.update(dt)
 				func()
 			end
 		else
-			assert(output, "console.return() has thrown an error; parse was set to false, but no other output was specified.")
 			console.text[#console.text + 1] = output
 		end
 		console.history[#console.history + 1] = console.input
@@ -555,8 +553,8 @@ function console.reset()
 	console.load()
 end
 
-function console.return(str)
-	return str
+function console.readwrite(text)
+	return text
 end
 
 -----TABLE COPY FUNCTION-----
