@@ -34,10 +34,10 @@ Pressing up or down will allow you to scroll through the history of things that 
 ## Callbacks
 There are a number of callbacks I put in to make a few things easy.
 
-#####function c.print(str)
+####function c.print(str)
 Your replacement for the standard "print" function. Use c.print() to print to the custom console specifically. While the argument is str, it will take most types and convert them. Valid argument types are: strings, numbers, nil, booleans, and tables. Tables use "inspect" to print tables in a human readable format.
 
-#####function c.return(text)
+####function c.return(text)
 Callback that can be used to modify input and output of the console. A usage example follows below
 ```lua
 function c.return(text)
@@ -48,16 +48,16 @@ end
 ```
 Returning a string will change the output in the console, and returning any string will prevent the input from being run as code. If you return a second string, then the seconded returned string will replace the userinput in the console. If you want to replace just the userinput, you can return nil for the first argument, and whatever you pass will be run as code instead of the userinput.
 
-#####function c.clear()
+####function c.clear()
 Clears the console. Simple.
 
-#####function c.setTextColor(color_or_R, G, B, A)
+####function c.setTextColor(color_or_R, G, B, A)
 Will change the text color, as well as other colors that are linked to the text color. That includes the color of the scrollbar background, the cursor, and the color of the highlight when you ctrl-a.
 
-#####function c.setBackgroundColor(color_or_R, G, B, A)
+####function c.setBackgroundColor(color_or_R, G, B, A)
 Will change the color of the background, as well as other colors linked to the background color. That includes the scrollbar itself, and the color of the text when it is being highlighted.
 
-#####function c.reset()
+####function c.reset()
 If you bork everything, this will reset the console to the how it was in it's first state. Will most likely fix any problems you have if the console is being weird.
 
 There are also a number of accessible variables, which are the following:
