@@ -203,11 +203,12 @@ function console.update(dt)
 	local keys = priv.keypressed(dt)
 	
 	if priv.contains(keys, "return") then
-		local output, text = console.readwrite(console.input)
+		local text, output = console.readwrite(console.input)
 		text  = text or console.input
 		
+		console.text[#console.text + 1] = "> " .. text
+		
 		if output == nil then
-			console.text[#console.text + 1] = "> " .. text
 			local func, err = loadstring(text)
 			if err then
 				console.text[#console.text + 1] = err
@@ -217,6 +218,7 @@ function console.update(dt)
 		else
 			console.text[#console.text + 1] = output
 		end
+		
 		console.history[#console.history + 1] = console.input
 		
 		priv.historyindex  = #console.history + 1
@@ -235,11 +237,13 @@ function console.update(dt)
 			priv.historyindex = math.max(priv.historyindex - 1, 1)
 			console.input     = console.history[priv.historyindex]
 		end
+		priv.highlight  = false
 	elseif priv.contains(keys, "down") then
 		if #console.history >= 1 then 
 			priv.historyindex = math.min(priv.historyindex + 1, #console.history)
 			console.input     = console.history[priv.historyindex]
 		end
+		priv.highlight  = false
 	elseif not (keys[1] == nil) then
 		for k, v in ipairs(keys) do
 			if v == "space" then 
@@ -428,25 +432,6 @@ function console.draw()
 		end
 	end
 	
-	-----DRAW HIGHLIGHT RECTANGLE BOX-----
-	
-	if priv.highlight then
-		local font = console.font
-		local text = console.input
-		local wrap = env.width - priv.scroll.bg.width - buffer
-		
-		local lines = math.ceil(font:getWidth(text) / wrap)
-		
-		local w = font:getWidth(text)
-		local h = font:getHeight() * lines
-		
-		local x = 0 + buffer
-		local y = env.height - h - buffer
-	
-		love.graphics.setColor(colorA)
-		love.graphics.rectangle(mode, x, y, w, h)
-	end
-	
 	-----DRAW CONSOLE INPUT TEXT-----
 	
 	if true then	
@@ -466,7 +451,26 @@ function console.draw()
 			local w    = wrap
 			local h    = math.max(lines * font:getHeight() + buffer, font:getHeight() + buffer)
 			
-			if priv.highlight then love.graphics.setColor(colorA) else love.graphics.setColor(colorB) end
+			love.graphics.setColor(colorB)
+			love.graphics.rectangle(mode, x, y, w, h)
+		end
+		
+		-----DRAW HIGHLIGHT RECTANGLE BOX-----
+	
+		if priv.highlight then
+			local font = console.font
+			local text = console.input
+			local wrap = env.width - priv.scroll.bg.width - buffer
+			
+			local lines = math.ceil(font:getWidth(text) / wrap)
+			
+			local w = font:getWidth(text)
+			local h = font:getHeight() * lines
+			
+			local x = 0 + buffer
+			local y = env.height - h - buffer
+
+			love.graphics.setColor(colorA)
 			love.graphics.rectangle(mode, x, y, w, h)
 		end
 		
@@ -523,6 +527,8 @@ function console.print(str)
 	elseif type == "table" then
 		console.text[#console.text + 1] = inspect(str)
 	end
+	
+	priv.lines.changed = true
 end
 
 function console.clear()
