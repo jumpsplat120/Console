@@ -66,6 +66,8 @@ function console.load()
 	priv.pausetimer   = 0
 	priv.highlight    = false
 	priv.mouseDown    = false
+	priv.copy         = false
+	priv.paste        = false
 	
 	-----CREATE CONSOLE DEFAULTS-----
 		
@@ -194,9 +196,13 @@ function console.update(dt)
 		env.prev.height = env.height
 	end
 	
-	-----CTRL A CHECK-----
+	-----CTRL + MOD CHECK-----
 	
-	local ctrla = priv.ctrlA()
+	local ctrla = priv.ctrl("a")
+	
+	local ctrlc = priv.ctrl("c")
+	
+	local ctrlv = priv.ctrl("v")
 	
 	-----CUSTOM KEYISDOWN CHECK-----
 	
@@ -247,9 +253,29 @@ function console.update(dt)
 	elseif not (keys[1] == nil) then
 		for k, v in ipairs(keys) do
 			if v == "space" then 
-				console.input = console.input .. " "
+				console.input  = console.input .. " "
+				priv.highlight = false
 			elseif v == "a" and ctrla then
 				--DON'T WRITE THE LETTER A WHEN HIGHLIGHTING
+			elseif v == "c" and ctrlc and priv.highlight then
+				love.system.setClipboardText(console.input)
+				priv.copy       = false
+				priv.cursor.pos = 0
+			elseif v == "v" and ctrlv and priv.highlight then
+				console.input   = love.system.getClipboardText()
+				priv.paste      = false
+				priv.highlight  = false
+				priv.cursor.pos = 0
+			elseif v == "v" and ctrlv then
+				local clipboard = love.system.getClipboardText()
+				if priv.cursor.pos >= 1 then
+					local p1 = console.input:sub(1, -priv.cursor.pos - 1)
+					local p2 = console.input:sub(-priv.cursor.pos)
+					console.input = p1 .. clipboard .. p2
+				else
+					console.input = console.input .. clipboard
+				end
+				priv.paste = false
 			elseif priv.highlight then
 				console.input  = v
 				priv.highlight = false
@@ -263,7 +289,6 @@ function console.update(dt)
 				end
 			end
 		end
-		priv.highlight = false
 	end
 	
 	-----CUSTOM BACKSPACE CHECK-----
@@ -318,7 +343,7 @@ function console.update(dt)
 	end
 	
 	-----CALCULATE VISIBLE LINES-----
-	
+
 	if priv.lines.changed then
 		local lines = 0
 		local font  = console.font
@@ -622,7 +647,8 @@ end
 function priv.backspace(dt, text, pos, highlight)
 	if love.keyboard.isDown("backspace") then
 		if highlight then
-			priv.highlight = false
+			priv.highlight  = false
+			priv.cursor.pos = 0
 			return "" 
 		end
 		
@@ -660,13 +686,25 @@ end
 
 -----CTRL A FUNCTION-----
 
-function priv.ctrlA()
+function priv.ctrl(key)
 	local lctrl = love.keyboard.isDown("lctrl")
-	local a     = love.keyboard.isDown("a")
+	local mod   = love.keyboard.isDown(key)
 	
-	if lctrl and a then 
-		priv.highlight = true
-		return true
+	if lctrl and mod then 
+		if key == "a" then
+			priv.highlight = true
+			return true
+		end
+		
+		if key == "c" then
+			priv.copy = true
+			return true
+		end
+		
+		if key == "v" then
+			priv.paste = true
+			return true
+		end
 	else
 		return false
 	end
