@@ -54,8 +54,10 @@ MAKE SURE TO EITHER REMOVE THE ASSERT CHECK, OR ADD IN THE NEW LEVELS, OR AN ERR
 Callback that can be used to modify input and output of the console. A usage example follows below
 ```lua
 function c.readwrite(text)
-  if text == "hello" then
-	return "Hello there"
+	if text == "hello" then
+		return "You said: Hello!", "I said: Hello there!"
+	else
+		return "You didn't say anything!"
   end
 end
 ```

@@ -211,19 +211,23 @@ function console.update(dt)
 	local keys = priv.keypressed(dt)
 	
 	if priv.contains(keys, "return") then
-		local text, output = console.readwrite(console.input)
+		local text, response = console.readwrite(console.input)
 		text  = text or console.input
 		
 		console.text.str[#console.text.str + 1] = "> " .. text
 		console.text.color[#console.text.color + 1] = {1,1,1,1}
 
-		if output == nil then
+		if response == nil then
 			local func, err = loadstring(text)
 			if err then
 				console.text.str[#console.text.str + 1] = err
-				console.text.color[#console.text.color + 1] = {1,1,1,1}
+				console.text.color[#console.text.color + 1] = {1,1,0,1}
 			else
-				func()
+				local success, err = pcall(function() func() end)
+				if err then
+					console.text.str[#console.text.str + 1] = err
+					console.text.color[#console.text.color + 1] = {1,1,0,1}
+				end
 			end
 		else
 			console.text.str[#console.text.str + 1] = output
@@ -458,7 +462,6 @@ function console.draw()
 			local color = console.text.color[i]
 			local y     = (lines * font:getHeight()) - (priv.scroll.index * font:getHeight()) + buffer
 			
-			print(not (color[1] == nil))
 			if not (color[1] == nil) then
 				love.graphics.setColor(colorA)
 				love.graphics.setBlendMode("add")
