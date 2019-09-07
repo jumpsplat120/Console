@@ -71,7 +71,7 @@ function console.load()
 	
 	-----CREATE CONSOLE DEFAULTS-----
 		
-	console.textColor  = {1,1,1,1}
+	console.accessoryColor  = {1,1,1,1}
 	console.bgColor    = {.05,.05,.05,1}
 	console.width      = 976
 	console.height     = 480
@@ -79,6 +79,8 @@ function console.load()
 	console.input      = ""
 	console.history    = {}
 	console.text       = {}
+	console.text.color = {}
+	console.text.str   = {}
 	console.flags      = {resizable = true, minwidth = 677, minheight = 343}
 	
 	-----SET FONT-----
@@ -99,7 +101,7 @@ function console.load()
 	
 	-----SET COLOR-----
 	
-	love.graphics.setColor(console.textColor)
+	love.graphics.setColor(console.accessoryColor)
 	
 	-----SET KEY REPEAT-----
 	
@@ -212,17 +214,20 @@ function console.update(dt)
 		local text, output = console.readwrite(console.input)
 		text  = text or console.input
 		
-		console.text[#console.text + 1] = "> " .. text
-		
+		console.text.str[#console.text.str + 1] = "> " .. text
+		console.text.color[#console.text.color + 1] = {1,1,1,1}
+
 		if output == nil then
 			local func, err = loadstring(text)
 			if err then
-				console.text[#console.text + 1] = err
+				console.text.str[#console.text.str + 1] = err
+				console.text.color[#console.text.color + 1] = {1,1,1,1}
 			else
 				func()
 			end
 		else
-			console.text[#console.text + 1] = output
+			console.text.str[#console.text.str + 1] = output
+			console.text.color[#console.text.color + 1] = {1,1,1,1}
 		end
 		
 		console.history[#console.history + 1] = console.input
@@ -348,8 +353,8 @@ function console.update(dt)
 		local lines = 0
 		local font  = console.font
 		
-		for i = 1, #console.text do
-			local text = console.text[i]
+		for i = 1, #console.text.str do
+			local text = console.text.str[i]
 			local wrap = env.width - priv.scroll.bg.width
 			
 			lines = lines + math.ceil(font:getWidth(text) / wrap)
@@ -381,8 +386,10 @@ function console.update(dt)
 			priv.lines.changed = true
 		end
 	else
-		table.remove(console.text, 1)
-		table.remove(console.text, 1)
+		table.remove(console.text.str, 1)
+		table.remove(console.text.str, 1)
+		table.remove(console.text.color, 1)
+		table.remove(console.text.color, 1)
 		priv.scroll.index = priv.scroll.max
 	end
 	
@@ -397,7 +404,7 @@ function console.draw()
 	
 	-----COMMONLY USED VALUES----
 	
-	local colorA = console.textColor
+	local colorA = console.accessoryColor
 	local colorB = console.bgColor
 	local mode   = "fill"
 	local buffer = 2
@@ -446,14 +453,23 @@ function console.draw()
 		local wrap  = env.width - priv.scroll.bg.width - buffer
 		local x     = 0 + buffer
 		
-		for i = 1, #console.text do
-			local text = console.text[i]
-			local y    = (lines * font:getHeight()) - (priv.scroll.index * font:getHeight()) + buffer
+		for i = 1, #console.text.str do
+			local text  = console.text.str[i]
+			local color = console.text.color[i]
+			local y     = (lines * font:getHeight()) - (priv.scroll.index * font:getHeight()) + buffer
+			
+			print(not (color[1] == nil))
+			if not (color[1] == nil) then
+				love.graphics.setColor(colorA)
+				love.graphics.setBlendMode("add")
+				love.graphics.setColor(color)
+				love.graphics.setBlendMode("replace")
+			else
+				love.graphics.setColor(colorA)
+			end
+			love.graphics.printf(text, font, x, y, wrap)
 			
 			lines = lines + math.ceil(font:getWidth(text) / wrap)
-			
-			love.graphics.setColor(colorA)
-			love.graphics.printf(text, font, x, y, wrap)
 		end
 	end
 	
@@ -546,27 +562,83 @@ function console.print(str)
 	local type = type(str)
 	
 	if     type == "string" then
-		console.text[#console.text + 1] = str
+		console.text.str[#console.text.str + 1] = str
 	elseif type == "number" or type == "boolean" or type == "nil" then
-		console.text[#console.text + 1] = tostring(str)
+		console.text.str[#console.text.str + 1].str = tostring(str)
 	elseif type == "table" then
-		console.text[#console.text + 1] = inspect(str)
+		console.text.str[#console.text.str + 1].str = inspect(str)
 	end
+	console.text.color[#console.text.color + 1] = {1,1,1,1}
+	
+	priv.lines.changed = true
+end
+
+function console.log(str, level)
+	assert(level == 1 or level == 2 or level == 3 or level == nil, "console.log threw an error; level parameter must be a number between 1 - 3.")
+	local color
+	local time = os.date("*t")
+	local timestamp = "[" .. string.format("%02d", time.month) .. "-" .. string.format("%02d", time.day) .. "-" .. time.year .. " " .. string.format("%02d", time.hour) .. ":" .. string.format("%02d", time.min) .. ":" .. string.format("%02d", time.sec) .. "] "
+	
+	if     level == 1 then
+		color = {0,1,0,1}
+	elseif level == 2 then
+		color = {0,1,1,1}
+	elseif level == 3 then
+		color = {1,0,0,1}
+	else
+		color = {1,1,1,1}
+	end
+	
+	local type = type(str)
+	
+	if     type == "string" then
+		console.text.str[#console.text.str + 1] = timestamp .. str
+	elseif type == "number" or type == "boolean" or type == "nil" then
+		console.text.str[#console.text.str + 1].str = timestamp .. tostring(str)
+	elseif type == "table" then
+		console.text.str[#console.text.str + 1].str = timestamp .. inspect(str)
+	end
+	
+	console.text.color[#console.text.color + 1] = color
 	
 	priv.lines.changed = true
 end
 
 function console.clear()
-	console.text = {}
+	console.text.str = {}
 end
 
-function console.setTextColor(color_or_R, G, B, A)
+function console.setAccessoryColor(color_or_R, G, B, A)
 	local type = type(color_or_R)
 	
 	if     type == "table" then
-		console.textColor = color_or_R
+		console.accessoryColor = color_or_R
 	elseif type == "number" then
-		console.textColor = {color_or_R, G, B, A}
+		console.accessoryColor = {color_or_R, G, B, A}
+	end
+end
+
+function console.setLineColor(color_or_R, line_or_G, B, A, line)
+	local type = type(color_or_R)
+	
+	if     type == "table" then
+		console.text.color[line_or_G] = color_or_R
+	elseif type == "number" then
+		console.text.color[line] = {color_or_R, line_or_G, B, A}
+	end
+end
+
+function console.setAllLinesColor(color_or_R, G, B, A)
+	local type = type(color_or_R)
+	
+	if     type == "table" then
+		for i = 1, #console.text.str do
+			console.text.color[i] = color_or_R
+		end
+	elseif type == "number" then
+		for i = 1, #console.text.str do
+			console.text.color[i] = {color_or_R, line_or_G, B, A}
+		end
 	end
 end
 
@@ -740,6 +812,12 @@ function priv.isInRect(rect, mouse)
 	local yinbounds = p1.y <= mouse.y and mouse.y <= p2.y
 	
 	if xinbounds and yinbounds then return true else return false end
+end
+
+-----CONSTRAIN NUMBER FUNCTION-----
+
+function priv.constrain(max, min, input)
+	return math.max(math.min(input, max), min)
 end
 
 return console
