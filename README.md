@@ -55,7 +55,7 @@ Callback that can be used to modify input and output of the console. A usage exa
 ```lua
 function c.readwrite(text)
   if text == "hello" then
-  return "Hello there"
+	return "Hello there"
   end
 end
 ```
@@ -80,13 +80,15 @@ Does the same as above, but will change all lines in one fell swoop. THIS WILL O
 If you bork everything, this will reset the console to the how it was in it's first state. Will most likely fix any problems you have if the console is being weird.
 
 There are also a number of accessible variables, which are the following:
-*   c.accessoryColor = {1,1,1,1}       //The direct variable for the textColor. While you can change the color directly, it's better to use the callback, and only access this variable for reading purposes.
-*	c.bgColor        = {.05,.05,.05,1} //The direct variable for the bgColor. While you can change the color directly, it's better to use the callback, and only access this variable for reading purposes.
-*	c.width          = 976             //This is the width of the console. Will be the same as the width from love.window.getModes()
-*	c.height         = 480             //This is the width of the console. Will be the same as the height from love.window.getModes()
-*	c.historyMax     = 1000            //The max amount of history that will be saved. 
-*	c.input          = ""              //This is the variable that stores the string of whatever is being typed.
-*	c.history        = {}              //This is the table that contains all of the history. Items over the max will be deleted, first in, first out.
-*	c.text.str       = {}              //This is all the text that is being displayed on the screen.
-*	c.text.color     = {}              //These are the colors for each line that is displayed. For each line in c.text.str at i, there must be a corresponding color at i as well. If there is one missing, it will throw an error when reaching the end of the table. The best way to modify this is through the callback.
-*	c.flags          = {resizable = true, minwidth = 677, minheight = 343} //Flags that are set with love.window.setMode()
+```lua
+c.accessoryColor = {1,1,1,1}       //The direct variable for the textColor. While you can change the color directly, it's better to use the callback, and only access this variable for reading purposes.
+c.bgColor        = {.05,.05,.05,1} //The direct variable for the bgColor. While you can change the color directly, it's better to use the callback, and only access this variable for reading purposes.
+c.width          = 976             //This is the width of the console. Will be the same as the width from love.window.getModes()
+c.height         = 480             //This is the width of the console. Will be the same as the height from love.window.getModes()
+c.historyMax     = 1000            //The max amount of history that will be saved. 
+c.input          = ""              //This is the variable that stores the string of whatever is being typed.
+c.history        = {}              //This is the table that contains all of the history. Items over the max will be deleted, first in, first out.
+c.text.str       = {}              //This is all the text that is being displayed on the screen.
+c.text.color     = {}              //These are the colors for each line that is displayed. For each line in c.text.str at i, there must be a corresponding color at i as well. If there is one missing, it will throw an error when reaching the end of the table. The best way to modify this is through the callback.
+c.flags          = {resizable = true, minwidth = 677, minheight = 343} //Flags that are set with love.window.setMode()
+```
