@@ -582,7 +582,7 @@ function console.log(str, level)
 	if     level == 1 then
 		color = {0,1,0,1}
 	elseif level == 2 then
-		color = {0,1,1,1}
+		color = {1,1,0,1}
 	elseif level == 3 then
 		color = {1,0,0,1}
 	else
