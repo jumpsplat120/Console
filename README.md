@@ -44,7 +44,7 @@ Similar to c.print(), this will take a string and output it to the console. Howe
 * 2 = yellow
 * 3 = red
 
-Not adding a level parameter will keep it white. On top of that, each line will have a timestamp in front of it formatted as such; "[month-day-year] hour:min:sec". 
+Not adding a level parameter will keep it white. On top of that, each line will have a timestamp in front of it formatted as such: `[month-day-year] hour:min:sec` 
 
 Adding colors to the c.log() function is easy! Scroll down inside console.lua until you get to console.log(), around line 576. A few lines in there are some if statements. Simply change the ones that are already there following this format or add your own: `{red, green, blue, alpha}`
 
