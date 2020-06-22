@@ -604,6 +604,8 @@ print = function(...)
 					else
 						new_table[i] = stringify(args[i])
 					end
+				else
+					new_table[i] = stringify(args[i])
 				end
 			else
 				new_table[i] = stringify(args[i])
