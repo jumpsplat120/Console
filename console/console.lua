@@ -237,6 +237,8 @@ function Rectangle:new(x, y, w, h, base_color, hover_color, click_color, mode)
 	self.mode  = mode or "fill"
 end
 
+		--===|||GETTERS|||===--
+	
 function Rectangle:get_x() return rawget(self, "x") end
 function Rectangle:get_y() return rawget(self, "y") end
 function Rectangle:get_w() return rawget(self, "w") end
@@ -298,6 +300,8 @@ function Rectangle:get_click_a()
 	return clr == true and self.base_a or rawget(clr, "a")
 end
 
+		--===|||SETTERS|||===--
+		
 function Rectangle:set_x(val)
 	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
 	rawset(self, "x", val)
@@ -334,25 +338,111 @@ function Rectangle:set_base_r(val) rawset(self.base_color, "r", val) end
 function Rectangle:set_base_g(val) rawset(self.base_color, "g", val) end
 function Rectangle:set_base_b(val) rawset(self.base_color, "b", val) end
 function Rectangle:set_base_a(val) rawset(self.base_color, "a", val) end
-function Rectangle:set_hover_r(val) rawset(self.hover_color, "r", val) end
-function Rectangle:set_hover_g(val) rawset(self.hover_color, "g", val) end
-function Rectangle:set_hover_b(val) rawset(self.hover_color, "b", val) end
-function Rectangle:set_hover_a(val) rawset(self.hover_color, "a", val) end
-function Rectangle:set_click_r(val) rawset(self.click_color, "r", val) end
-function Rectangle:set_click_g(val) rawset(self.click_color, "g", val) end
-function Rectangle:set_click_b(val) rawset(self.click_color, "b", val) end
-function Rectangle:set_click_a(val) rawset(self.click_color, "a", val) end
 
 function Rectangle:set_hover_color(val)
-	local empty = val == true
-
-	assert(not empty and val:is(Color), "value must be of type 'color'.")
+	if val != true then assert(val:is(Color), "value must be of type 'color'.") end
 	rawset(self, "hover_color", val)		
 end
 
+function Rectangle:set_hover_r(val)
+	local clr = rawget(self, "hover_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.r = val
+		self.hover_color = clr
+	else
+		rawset(clr, "r", val)
+	end
+end
+
+function Rectangle:set_hover_g(val)
+	local clr = rawget(self, "hover_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.g = val
+		self.hover_color = clr
+	else
+		rawset(clr, "g", val)
+	end
+end
+
+function Rectangle:set_hover_b(val)
+ 		local clr = rawget(self, "hover_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.b = val
+		self.hover_color = clr
+	else
+		rawset(clr, "b", val)
+	end
+end
+
+function Rectangle:set_hover_a(val)
+ 		local clr = rawget(self, "hover_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.a = val
+		self.hover_color = clr
+	else
+		rawset(clr, "a", val)
+	end
+end
+
 function Rectangle:set_click_color(val)
-	assert(val:is(Color), "value must be of type 'color'.")
+	if val != true then assert(val:is(Color), "value must be of type 'color'.") end
 	rawset(self, "click_color", val)
+end
+
+function Rectangle:set_click_r(val)
+ 	local clr = rawget(self, "click_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.r = val
+		self.click_color = clr
+	else
+		rawset(clr, "r", val)
+	end
+end
+
+function Rectangle:set_click_g(val)
+ 	local clr = rawget(self, "click_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.g = val
+		self.click_color = clr
+	else
+		rawset(clr, "g", val)
+	end
+end
+
+function Rectangle:set_click_b(val)
+ 	local clr = rawget(self, "click_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.b = val
+		self.click_color = clr
+	else
+		rawset(clr, "b", val)
+	end
+end
+
+function Rectangle:set_click_a(val)
+  	local clr = rawget(self, "click_color")
+	
+	if clr == true then 
+		clr   = self.base_color:clone()
+		clr.a = val
+		self.click_color = clr
+	else
+		rawset(clr, "a", val)
+	end
 end
 
 function Rectangle:draw()
