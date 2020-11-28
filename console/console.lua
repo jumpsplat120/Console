@@ -105,62 +105,55 @@ end
 
 -----CLASSES-----
 
-local Point, Rectangle, Console
+local Point, Rectangle, Console, Color
 
 Point     = Object:extend()
 Console   = Object:extend()
 Color     = Object:extend()
-Rectangle = Point:extend()
+Rectangle = Object:extend()
 
 	--=========COLOR=========--
 
-function Color:new(r, g, b, a)
-	self.data = {
-		r = r or 0,
-		g = g or 0,
-		b = b or 0,
-		a = a or 0
-	}
-	
-	assert(self.data.r >= 0 and 255 >= self.data.r, "Red must be between 0 and 255.")
-	assert(self.data.g >= 0 and 255 >= self.data.g, "Green must be between 0 and 255.")
-	assert(self.data.b >= 0 and 255 >= self.data.b, "Blue must be between 0 and 255.")
-	assert(self.data.a >= 0 and   1 >= self.data.a, "Apha must be between 0 and 1.")
+function Color:new(r, g, b, a)	
+	self.r = r or 0
+	self.g = g or 0
+	self.b = b or 0
+	self.a = a or 0
 end
 
-function Color:get_r() return self.data.r end
-function Color:get_g() return self.data.g end
-function Color:get_b() return self.data.b end
-function Color:get_a() return self.data.a end
+function Color:get_r() return rawget(self, "r") end
+function Color:get_g() return rawget(self, "g") end
+function Color:get_b() return rawget(self, "b") end
+function Color:get_a() return rawget(self, "a") end
 
-function Color:get_to_love() return { self.data.r / 255, self.data.g / 255, self.data.b / 255, self.data.a } end
+function Color:get_to_love() return { self.r / 255, self.g / 255, self.b / 255, self.a } end
 
 function Color:set_r(val)
-	assert(val > 0, "Unable to set red less than zero.")
-	assert(255 > val, "Unable to set red to more than 255.")
-	rawset(self.data, r, val)
+	assert(val >= 0, "Unable to set red less than zero.")
+	assert(255 >= val, "Unable to set red to more than 255.")
+	rawset(self, "r", val)
 end
 
 function Color:set_g(val)
-	assert(val > 0, "Unable to set green less than zero.")
-	assert(255 > val, "Unable to set green to more than 255.")
-	rawset(self.data, g, val)
+	assert(val >= 0, "Unable to set green less than zero.")
+	assert(255 >= val, "Unable to set green to more than 255.")
+	rawset(self, "g", val)
 end
 
 function Color:set_b(val)
-	assert(val > 0, "Unable to set blue less than zero.")
-	assert(255 > val, "Unable to set blue to more than 255.")
-	rawset(self.data, b, val)
+	assert(val >= 0, "Unable to set blue less than zero.")
+	assert(255 >= val, "Unable to set blue to more than 255.")
+	rawset(self, "b", val)
 end
 
 function Color:set_a(val)
-	assert(val > 0, "Unable to set alpha less than zero.")
-	assert(1 > val, "Unable to set alpha to more than 1.")
-	rawset(self.data, a, val)
+	assert(val >= 0, "Unable to set alpha less than zero.")
+	assert(1 >= val, "Unable to set alpha to more than 1.")
+	rawset(self, "a", val)
 end
 
 function Color:__tostring()
-	return "r: " .. self.data.r .. ", g: " .. self.data.g .. ", b: " .. self.data.b .. ", a: " .. self.data.a
+	return "r: " .. self.r .. ", g: " .. self.g .. ", b: " .. self.b .. ", a: " .. self.a
 end
 
 def_background = Color(12, 12, 12, 1)
@@ -188,40 +181,92 @@ function Point:new(x, y)
 	self.y = y or 0
 end
 
+function Point:get_x() return rawget(self, "x") end
+function Point:get_y() return rawget(self, "y") end
+
+function Point:set_x(val)
+	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
+	rawset(self, "x", val)
+end
+
+function Point:set_y(val)
+	assert(type(val) == "number", "Unable to set y to " .. tostring(val) .. " as value is not of type 'number'.")
+	rawset(self, "y", val)
+end
+
 function Point:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y
 end
 
 	--=======RECTANGLE=======--
 		
-function Rectangle:new(x, y, w, h)
-	Rectangle.super.new(self, x, y)
-	
-	self.data = {
-		w = w or 0,
-		h = h or 0
-	}
-	
-	assert(self.data.w >= 0, "Width must be more than zero.")
-	assert(self.data.h >= 0, "Height must be more than zero.")
+function Rectangle:new(x, y, w, h, color, mode)	
+	self.x = x or 0
+	self.y = y or 0
+	self.w = w or 0
+	self.h = h or 0
+	self.color = color or Color(0, 0, 0, 1)	
+	self.mode  = mode or "fill"
 end
 
-function Rectangle:get_w() return self.data.w end
-function Rectangle:get_h() return self.data.h end
+function Rectangle:get_x() return rawget(self, x) end
+function Rectangle:get_y() return rawget(self, y) end
+function Rectangle:get_w() return rawget(self, w) end
+function Rectangle:get_h() return rawget(self, h) end
+function Rectangle:get_mode() return rawget(self, mode) end
+function Rectangle:get_r() return rawget(self.color, r) end
+function Rectangle:get_g() return rawget(self.color, g) end
+function Rectangle:get_b() return rawget(self.color, b) end
+function Rectangle:get_a() return rawget(self.color, a) end
+
+function Rectangle:set_r(val) rawset(self.color, r, val) end
+function Rectangle:set_g(val) rawset(self.color, g, val) end
+function Rectangle:set_b(val) rawset(self.color, b, val) end
+function Rectangle:set_a(val) rawset(self.color, a, val) end
+
+function Rectangle:set_x(val)
+	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
+	rawset(self, "x", val)
+end
+
+function Rectangle:set_y(val)
+	assert(type(val) == "number", "Unable to set y to " .. tostring(val) .. " as value is not of type 'number'.")
+	rawset(self, "y", val)
+end
+
+function Rectangle:set_color(val)
+	assert(val:is(Color), "Value must be of type 'color'.")
+	rawset(self, "color", val)
+end
+
+function Rectangle:set_mode(val)
+	val = tostring(val):lower()
+	
+	assert(val == "fill" or val == "line", "DrawMode must be of type 'fill' or 'line'.")
+	rawset(self, "mode", val)
+end
 
 function Rectangle:set_w(val)
-	assert(self.data.w > 0, "Unable to set a width less than 0.")
-	rawset(self.data, w, val)
+	assert(val >= 0, "Unable to set a width less than 0.")	
+	rawset(self, "w", val)
 end
 
 function Rectangle:set_h(val)
-	assert(self.data.h > 0, "Unable to set a height less than 0.")
-	rawset(self.data, h, val)
+	assert(val >= 0, "Unable to set a height less than 0.")	
+	rawset(self, "h", val)
+end
+
+function Rectangle:draw()
+	love.graphics.setColor(self.color.to_love)
+	love.graphics.rectangle(self.mode, self.x, self.x, self.w, self.h)
+end
+
+function Rectangle:update(dt)
 end
 
 function Rectangle:containsPoint(point)
 	assert(point:is(Point), "Passed value was not of type 'point'.")
-	return ((self.x <= point.x and point.x <= self.x + self.data.w) and (self.y <= point.y and point.y <= self.y + self.data.h))
+	return ((self.x <= point.x and point.x <= self.x + self.w) and (self.y <= point.y and point.y <= self.y + self.h))
 end
 
 function Rectangle:__tostring()
