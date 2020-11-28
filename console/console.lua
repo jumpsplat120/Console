@@ -235,12 +235,12 @@ function Console:new()
 	self.color = {
 		font             = def_font_color,
 		background       = def_background,
-		windows_bar      = def_theme[dark_theme_active and "dark" or "light"]windows_bar ,
-		text_and_icons   = def_theme[dark_theme_active and "dark" or "light"]text_and_icons,
-		scrollbar_bg     = def_theme[dark_theme_active and "dark" or "light"]scrollbar_bg,
-		scrollbar_bar    = def_theme[dark_theme_active and "dark" or "light"]scrollbar_bar,
-		scrollbar_arrows = def_theme[dark_theme_active and "dark" or "light"]scrollbar_arrows,
-		border           = def_theme[dark_theme_active and "dark" or "light"]border
+		windows_bar      = def_theme[dark_theme_active and "dark" or "light"].windows_bar,
+		text_and_icons   = def_theme[dark_theme_active and "dark" or "light"].text_and_icons,
+		scrollbar_bg     = def_theme[dark_theme_active and "dark" or "light"].scrollbar_bg,
+		scrollbar_bar    = def_theme[dark_theme_active and "dark" or "light"].scrollbar_bar,
+		scrollbar_arrows = def_theme[dark_theme_active and "dark" or "light"].scrollbar_arrows,
+		border           = def_theme[dark_theme_active and "dark" or "light"].border
 	}
 	
 	self.window = {
@@ -346,12 +346,12 @@ function Console:reset()
 	self.color = {
 		font             = def_font_color,
 		background       = def_background,
-		windows_bar      = def_theme[dark_theme_active and "dark" or "light"]windows_bar ,
-		text_and_icons   = def_theme[dark_theme_active and "dark" or "light"]text_and_icons,
-		scrollbar_bg     = def_theme[dark_theme_active and "dark" or "light"]scrollbar_bg,
-		scrollbar_bar    = def_theme[dark_theme_active and "dark" or "light"]scrollbar_bar,
-		scrollbar_arrows = def_theme[dark_theme_active and "dark" or "light"]scrollbar_arrows,
-		border           = def_theme[dark_theme_active and "dark" or "light"]border
+		windows_bar      = def_theme[dark_theme_active and "dark" or "light"].windows_bar,
+		text_and_icons   = def_theme[dark_theme_active and "dark" or "light"].text_and_icons,
+		scrollbar_bg     = def_theme[dark_theme_active and "dark" or "light"].scrollbar_bg,
+		scrollbar_bar    = def_theme[dark_theme_active and "dark" or "light"].scrollbar_bar,
+		scrollbar_arrows = def_theme[dark_theme_active and "dark" or "light"].scrollbar_arrows,
+		border           = def_theme[dark_theme_active and "dark" or "light"].border
 	}
 	
 	self.window = {
