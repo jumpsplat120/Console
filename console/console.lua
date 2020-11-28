@@ -445,7 +445,10 @@ function Rectangle:set_click_a(val)
 	end
 end
 
+		--===|||METHODS|||===--
+		
 function Rectangle:draw()
+	
 	love.graphics.setColor(self.color.to_love)
 	love.graphics.rectangle(self.mode, self.x, self.x, self.w, self.h)
 end
