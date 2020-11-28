@@ -57,26 +57,27 @@ def_min_width = 677
 def_min_width = 343
 def_font_size = 12
 
+--each one contains a base_color, hover_color, click_color.
 def_theme = {
 	light = {
-		windows_bar      = nil,
-		text_and_icons   = nil,
-		scrollbar_bg     = nil,
-		scrollbar_bar    = nil,
-		scrollbar_arrows = nil,
-		border           = nil,
-		exit_hover       = nil,
-		other_hover      = nil
+		windows_bar      = {},
+		text_and_icons   = {},
+		scrollbar_bg     = {},
+		scrollbar_bar    = {},
+		scrollbar_arrows = {},
+		border           = {},
+		exit_hover       = {},
+		other_hover      = {}
 	},
 	dark  = {
-		windows_bar      = nil,
-		text_and_icons   = nil,
-		scrollbar_bg     = nil,
-		scrollbar_bar    = nil,
-		scrollbar_arrows = nil,
-		border           = nil,
-		exit_hover       = nil,
-		other_hover      = nil
+		windows_bar      = {},
+		text_and_icons   = {},
+		scrollbar_bg     = {},
+		scrollbar_bar    = {},
+		scrollbar_arrows = {},
+		border           = {},
+		exit_hover       = {},
+		other_hover      = {}
 	}
 }
 
@@ -156,6 +157,10 @@ function Color:set_a(val)
 	rawset(self, "a", val)
 end
 
+function Color:clone()
+	return Color(self.r, self.g, self.b, self.a)
+end
+
 function Color:__tostring()
 	return "r: " .. self.r .. ", g: " .. self.g .. ", b: " .. self.b .. ", a: " .. self.a
 end
@@ -181,10 +186,10 @@ def_theme.light.scrollbar_bg     = Color(240, 240, 240, 1)
 def_theme.light.scrollbar_bar    = Color(205, 205, 205, 1)
 def_theme.light.scrollbar_arrows = Color(96, 96, 96, 1)
 def_theme.light.border           = Color(240, 240, 240, 1)
-def_theme.dark.exit_hover       = Color(232, 17, 35, 1)
-def_theme.dark.other_hover      = Color(229, 229, 229, 1)
-def_theme.dark.exit_click       = Color(241, 112, 122, 1)
-def_theme.dark.other_click      = Color(204, 204, 204, 1)
+def_theme.dark.exit_hover        = Color(232, 17, 35, 1)
+def_theme.dark.other_hover       = Color(229, 229, 229, 1)
+def_theme.dark.exit_click        = Color(241, 112, 122, 1)
+def_theme.dark.other_click       = Color(204, 204, 204, 1)
 
 	--=========POINT=========--
 
@@ -206,12 +211,21 @@ function Point:set_y(val)
 	rawset(self, "y", val)
 end
 
+function Point:clone()
+	return Point(self.x, self.y)
+end
+
 function Point:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y
 end
 
 	--=======RECTANGLE=======--
-		
+
+-- x, y, w, h and base_color are required, but do have defaults. hover and click can take a color or 'true'. Passing true
+-- is basically saying that this rectangle doesn't have different colors for hovering or clicking. If attempting to access
+-- the hover or click color after it's been set to not use one, it will instead return the base_color, since that is visually
+-- what is happening, even though internally hover and click don't contain anything. Attempting to set and individual value
+-- for hover or click when they do not exist, will clone the base color and change the expected value.
 function Rectangle:new(x, y, w, h, base_color, hover_color, click_color, mode)	
 	self.x = x or 0
 	self.y = y or 0
@@ -228,35 +242,61 @@ function Rectangle:get_y() return rawget(self, "y") end
 function Rectangle:get_w() return rawget(self, "w") end
 function Rectangle:get_h() return rawget(self, "h") end
 function Rectangle:get_mode() return rawget(self, "mode") end
+function Rectangle:get_base_color() return rawget(self, "base_color") end
 function Rectangle:get_base_r() return rawget(self.base_color, "r") end
 function Rectangle:get_base_g() return rawget(self.base_color, "g") end
 function Rectangle:get_base_b() return rawget(self.base_color, "b") end
 function Rectangle:get_base_a() return rawget(self.base_color, "a") end
-function Rectangle:get_hover_r() return rawget(self.hover_color, "r") end
-function Rectangle:get_hover_g() return rawget(self.hover_color, "g") end
-function Rectangle:get_hover_b() return rawget(self.hover_color, "b") end
-function Rectangle:get_hover_a() return rawget(self.hover_color, "a") end
-function Rectangle:get_click_r() return rawget(self.click_color, "r") end
-function Rectangle:get_click_g() return rawget(self.click_color, "g") end
-function Rectangle:get_click_b() return rawget(self.click_color, "b") end
-function Rectangle:get_click_a() return rawget(self.click_color, "a") end
-function Rectangle:get_base_color() return rawget(self, "base_color") end
-function Rectangle:get_hover_color() return rawget(self, "hover_color") end
-function Rectangle:get_click_color() return rawget(self, "click_color") end
 
-function Rectangle:set_base_r(val) rawset(self.base_color, "r", val) end
-function Rectangle:set_base_g(val) rawset(self.base_color, "g", val) end
-function Rectangle:set_base_b(val) rawset(self.base_color, "b", val) end
-function Rectangle:set_base_a(val) rawset(self.base_color, "a", val) end
-function Rectangle:set_hover_r(val) rawset(self.hover_color, "r", val) end
-function Rectangle:set_hover_g(val) rawset(self.hover_color, "g", val) end
-function Rectangle:set_hover_b(val) rawset(self.hover_color, "b", val) end
-function Rectangle:set_hover_a(val) rawset(self.hover_color, "a", val) end
-function Rectangle:set_click_r(val) rawset(self.click_color, "r", val) end
-function Rectangle:set_click_g(val) rawset(self.click_color, "g", val) end
-function Rectangle:set_click_b(val) rawset(self.click_color, "b", val) end
-function Rectangle:set_click_a(val) rawset(self.click_color, "a", val) end
+function Rectangle:get_hover_color()
+	local clr = rawget(self, "hover_color")
+	return clr == true and self.base_color or clr
+end
 
+function Rectangle:get_hover_r() 
+	local clr = self.hover_color
+	return clr == true and self.base_r or rawget(clr, "r")
+end
+
+function Rectangle:get_hover_g()
+	local clr = self.hover_color
+	return clr == true and self.base_g or rawget(clr, "g")
+end
+
+function Rectangle:get_hover_b()
+	local clr = self.hover_color
+	return clr == true and self.base_b or rawget(clr, "b")
+end
+
+function Rectangle:get_hover_a()
+	local clr = self.hover_color
+	return clr == true and self.base_a or rawget(clr, "a")
+end
+
+function Rectangle:get_click_color()
+	local clr = rawget(self, "click_color")
+	return clr == true and self.base_color or clr
+end
+
+function Rectangle:get_click_r() 
+	local clr = self.click_color
+	return clr == true and self.base_r or rawget(clr, "r")
+end
+
+function Rectangle:get_click_g()
+	local clr = self.click_color
+	return clr == true and self.base_g or rawget(clr, "g")
+end
+
+function Rectangle:get_click_b()
+	local clr = self.click_color
+	return clr == true and self.base_b or rawget(clr, "b")
+end
+
+function Rectangle:get_click_a()
+	local clr = self.click_color
+	return clr == true and self.base_a or rawget(clr, "a")
+end
 
 function Rectangle:set_x(val)
 	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
@@ -290,9 +330,24 @@ function Rectangle:set_base_color(val)
 	rawset(self, "base_color", val)
 end
 
+function Rectangle:set_base_r(val) rawset(self.base_color, "r", val) end
+function Rectangle:set_base_g(val) rawset(self.base_color, "g", val) end
+function Rectangle:set_base_b(val) rawset(self.base_color, "b", val) end
+function Rectangle:set_base_a(val) rawset(self.base_color, "a", val) end
+function Rectangle:set_hover_r(val) rawset(self.hover_color, "r", val) end
+function Rectangle:set_hover_g(val) rawset(self.hover_color, "g", val) end
+function Rectangle:set_hover_b(val) rawset(self.hover_color, "b", val) end
+function Rectangle:set_hover_a(val) rawset(self.hover_color, "a", val) end
+function Rectangle:set_click_r(val) rawset(self.click_color, "r", val) end
+function Rectangle:set_click_g(val) rawset(self.click_color, "g", val) end
+function Rectangle:set_click_b(val) rawset(self.click_color, "b", val) end
+function Rectangle:set_click_a(val) rawset(self.click_color, "a", val) end
+
 function Rectangle:set_hover_color(val)
-	assert(val:is(Color), "value must be of type 'color'.")
-	rawset(self, "hover_color", val)
+	local empty = val == true
+
+	assert(not empty and val:is(Color), "value must be of type 'color'.")
+	rawset(self, "hover_color", val)		
 end
 
 function Rectangle:set_click_color(val)
