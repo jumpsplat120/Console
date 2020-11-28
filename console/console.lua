@@ -172,6 +172,8 @@ def_theme.dark.scrollbar_arrows = Color(103, 103, 103, 1)
 def_theme.dark.border           = Color(121, 121, 121, 1)
 def_theme.dark.exit_hover       = Color(232, 17, 35, 1)
 def_theme.dark.other_hover      = Color(26, 26, 26, 1)
+def_theme.dark.exit_click       = Color(139, 10, 20, 1)
+def_theme.dark.other_click      = Color(53, 53, 53, 1)
 
 def_theme.light.windows_bar      = Color(255, 255, 255, 1)
 def_theme.light.text_and_icons   = Color(0, 0, 0, 1)
@@ -181,6 +183,8 @@ def_theme.light.scrollbar_arrows = Color(96, 96, 96, 1)
 def_theme.light.border           = Color(240, 240, 240, 1)
 def_theme.dark.exit_hover       = Color(232, 17, 35, 1)
 def_theme.dark.other_hover      = Color(229, 229, 229, 1)
+def_theme.dark.exit_click       = Color(241, 112, 122, 1)
+def_theme.dark.other_click      = Color(204, 204, 204, 1)
 
 	--=========POINT=========--
 
@@ -208,29 +212,51 @@ end
 
 	--=======RECTANGLE=======--
 		
-function Rectangle:new(x, y, w, h, color, mode)	
+function Rectangle:new(x, y, w, h, base_color, hover_color, click_color, mode)	
 	self.x = x or 0
 	self.y = y or 0
 	self.w = w or 0
 	self.h = h or 0
-	self.color = color or Color(0, 0, 0, 1)	
+	self.base_color  = base_color  or Color(0, 0, 0, 1)
+	self.hover_color = hover_color or Color(255, 255, 255, 1)
+	self.click_color = click_color or Color(112, 112, 122, 1)
 	self.mode  = mode or "fill"
 end
 
-function Rectangle:get_x() return rawget(self, x) end
-function Rectangle:get_y() return rawget(self, y) end
-function Rectangle:get_w() return rawget(self, w) end
-function Rectangle:get_h() return rawget(self, h) end
-function Rectangle:get_mode() return rawget(self, mode) end
-function Rectangle:get_r() return rawget(self.color, r) end
-function Rectangle:get_g() return rawget(self.color, g) end
-function Rectangle:get_b() return rawget(self.color, b) end
-function Rectangle:get_a() return rawget(self.color, a) end
+function Rectangle:get_x() return rawget(self, "x") end
+function Rectangle:get_y() return rawget(self, "y") end
+function Rectangle:get_w() return rawget(self, "w") end
+function Rectangle:get_h() return rawget(self, "h") end
+function Rectangle:get_mode() return rawget(self, "mode") end
+function Rectangle:get_base_r() return rawget(self.base_color, "r") end
+function Rectangle:get_base_g() return rawget(self.base_color, "g") end
+function Rectangle:get_base_b() return rawget(self.base_color, "b") end
+function Rectangle:get_base_a() return rawget(self.base_color, "a") end
+function Rectangle:get_hover_r() return rawget(self.hover_color, "r") end
+function Rectangle:get_hover_g() return rawget(self.hover_color, "g") end
+function Rectangle:get_hover_b() return rawget(self.hover_color, "b") end
+function Rectangle:get_hover_a() return rawget(self.hover_color, "a") end
+function Rectangle:get_click_r() return rawget(self.click_color, "r") end
+function Rectangle:get_click_g() return rawget(self.click_color, "g") end
+function Rectangle:get_click_b() return rawget(self.click_color, "b") end
+function Rectangle:get_click_a() return rawget(self.click_color, "a") end
+function Rectangle:get_base_color() return rawget(self, "base_color") end
+function Rectangle:get_hover_color() return rawget(self, "hover_color") end
+function Rectangle:get_click_color() return rawget(self, "click_color") end
 
-function Rectangle:set_r(val) rawset(self.color, r, val) end
-function Rectangle:set_g(val) rawset(self.color, g, val) end
-function Rectangle:set_b(val) rawset(self.color, b, val) end
-function Rectangle:set_a(val) rawset(self.color, a, val) end
+function Rectangle:set_base_r(val) rawset(self.base_color, "r", val) end
+function Rectangle:set_base_g(val) rawset(self.base_color, "g", val) end
+function Rectangle:set_base_b(val) rawset(self.base_color, "b", val) end
+function Rectangle:set_base_a(val) rawset(self.base_color, "a", val) end
+function Rectangle:set_hover_r(val) rawset(self.hover_color, "r", val) end
+function Rectangle:set_hover_g(val) rawset(self.hover_color, "g", val) end
+function Rectangle:set_hover_b(val) rawset(self.hover_color, "b", val) end
+function Rectangle:set_hover_a(val) rawset(self.hover_color, "a", val) end
+function Rectangle:set_click_r(val) rawset(self.click_color, "r", val) end
+function Rectangle:set_click_g(val) rawset(self.click_color, "g", val) end
+function Rectangle:set_click_b(val) rawset(self.click_color, "b", val) end
+function Rectangle:set_click_a(val) rawset(self.click_color, "a", val) end
+
 
 function Rectangle:set_x(val)
 	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
@@ -242,9 +268,14 @@ function Rectangle:set_y(val)
 	rawset(self, "y", val)
 end
 
-function Rectangle:set_color(val)
-	assert(val:is(Color), "Value must be of type 'color'.")
-	rawset(self, "color", val)
+function Rectangle:set_w(val)
+	assert(val >= 0, "Unable to set a width less than 0.")	
+	rawset(self, "w", val)
+end
+
+function Rectangle:set_h(val)
+	assert(val >= 0, "Unable to set a height less than 0.")	
+	rawset(self, "h", val)
 end
 
 function Rectangle:set_mode(val)
@@ -254,14 +285,19 @@ function Rectangle:set_mode(val)
 	rawset(self, "mode", val)
 end
 
-function Rectangle:set_w(val)
-	assert(val >= 0, "Unable to set a width less than 0.")	
-	rawset(self, "w", val)
+function Rectangle:set_base_color(val)
+	assert(val:is(Color), "value must be of type 'color'.")
+	rawset(self, "base_color", val)
 end
 
-function Rectangle:set_h(val)
-	assert(val >= 0, "Unable to set a height less than 0.")	
-	rawset(self, "h", val)
+function Rectangle:set_hover_color(val)
+	assert(val:is(Color), "value must be of type 'color'.")
+	rawset(self, "hover_color", val)
+end
+
+function Rectangle:set_click_color(val)
+	assert(val:is(Color), "value must be of type 'color'.")
+	rawset(self, "click_color", val)
 end
 
 function Rectangle:draw()
