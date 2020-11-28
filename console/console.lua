@@ -64,7 +64,9 @@ def_theme = {
 		scrollbar_bg     = nil,
 		scrollbar_bar    = nil,
 		scrollbar_arrows = nil,
-		border           = nil
+		border           = nil,
+		exit_hover       = nil,
+		other_hover      = nil
 	},
 	dark  = {
 		windows_bar      = nil,
@@ -72,7 +74,9 @@ def_theme = {
 		scrollbar_bg     = nil,
 		scrollbar_bar    = nil,
 		scrollbar_arrows = nil,
-		border           = nil
+		border           = nil,
+		exit_hover       = nil,
+		other_hover      = nil
 	}
 }
 
@@ -166,6 +170,8 @@ def_theme.dark.scrollbar_bg     = Color(23, 23, 23, 1)
 def_theme.dark.scrollbar_bar    = Color(77, 77, 77, 1)
 def_theme.dark.scrollbar_arrows = Color(103, 103, 103, 1)
 def_theme.dark.border           = Color(121, 121, 121, 1)
+def_theme.dark.exit_hover       = Color(232, 17, 35, 1)
+def_theme.dark.other_hover      = Color(26, 26, 26, 1)
 
 def_theme.light.windows_bar      = Color(255, 255, 255, 1)
 def_theme.light.text_and_icons   = Color(0, 0, 0, 1)
@@ -173,6 +179,8 @@ def_theme.light.scrollbar_bg     = Color(240, 240, 240, 1)
 def_theme.light.scrollbar_bar    = Color(205, 205, 205, 1)
 def_theme.light.scrollbar_arrows = Color(96, 96, 96, 1)
 def_theme.light.border           = Color(240, 240, 240, 1)
+def_theme.dark.exit_hover       = Color(232, 17, 35, 1)
+def_theme.dark.other_hover      = Color(229, 229, 229, 1)
 
 	--=========POINT=========--
 
