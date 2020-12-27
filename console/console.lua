@@ -1,10 +1,10 @@
-local path, classic, inspect, Object
+local path, classic, inspect, Object, Color, Point, Rectangle, Console
 
 path = string.match(..., ".*/") or ""
 
-inspect  = require(path .. "inspect")
-Object   = require(path .. "classic")
-mouse    = require(path .. "global_mouse")
+inspect  = require(path .. "third_party/inspect")
+Object   = require(path .. "third_party/classic")
+mouse    = require(path .. "bin/global_mouse")
 
 --[[
 				   ____ ___  _   _ ____   ___  _     _____ 
@@ -99,62 +99,11 @@ end
 
 -----CLASSES-----
 
-local Point, Rectangle, Console, Color
-
-Point     = Object:extend()
-Console   = Object:extend()
-Color     = Object:extend()
-Rectangle = Object:extend()
+Console = Object:extend()
 
 	--=========COLOR=========--
 
-function Color:new(r, g, b, a)
-	self.meta = {
-		r = r or 0,
-		g = g or 0,
-		b = b or 0,
-		a = a or 0
-	}
-end
-
-function Color:get_r() return self.meta.r end
-function Color:get_g() return self.meta.g end
-function Color:get_b() return self.meta.b end
-function Color:get_a() return self.meta.a end
-
-function Color:get_to_love() return { self.r / 255, self.g / 255, self.b / 255, self.a } end
-
-function Color:set_r(val)
-	assert(val >= 0, "Unable to set red less than zero.")
-	assert(255 >= val, "Unable to set red to more than 255.")
-	self.meta.r = math.floor(val + .5)
-end
-
-function Color:set_g(val)
-	assert(val >= 0, "Unable to set green less than zero.")
-	assert(255 >= val, "Unable to set green to more than 255.")
-	self.meta.g = math.floor(val + .5)
-end
-
-function Color:set_b(val)
-	assert(val >= 0, "Unable to set blue less than zero.")
-	assert(255 >= val, "Unable to set blue to more than 255.")
-	self.meta.b = math.floor(val + .5)
-end
-
-function Color:set_a(val)
-	assert(val >= 0, "Unable to set alpha less than zero.")
-	assert(1 >= val, "Unable to set alpha to more than 1.")
-	self.meta.a = math.floor(val + .5)
-end
-
-function Color:clone()
-	return Color(self.r, self.g, self.b, self.a)
-end
-
-function Color:__tostring()
-	return "r: " .. self.r .. ", g: " .. self.g .. ", b: " .. self.b .. ", a: " .. self.a
-end
+Color = require(path .. "bin/Color")
 
 def_background = Color(12, 12, 12, 1)
 
@@ -389,267 +338,11 @@ def_theme = {
 
 	--=========POINT=========--
 
-function Point:new(x, y)
-	self.meta = {
-		x = x or 0,
-		y = y or 0
-	}
-end
-
-function Point:get_x() return self.meta.x end
-function Point:get_y() return self.meta.y end
-
-function Point:set_x(val)
-	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
-	self.meta.x = val
-end
-
-function Point:set_y(val)
-	assert(type(val) == "number", "Unable to set y to " .. tostring(val) .. " as value is not of type 'number'.")
-	self.meta.y = val
-end
-
-function Point:clone()
-	return Point(self.x, self.y)
-end
-
-function Point:__tostring()
-	return "x: " .. self.x .. ", y: " .. self.y
-end
+Point = require(path .. "bin/Point")
 
 	--=======RECTANGLE=======--
 
--- x, y, w, h and base_color are required, but do have defaults. hover and click can take a color or 'true'. Passing true
--- is basically saying that this rectangle doesn't have different colors for hovering or clicking. If attempting to access
--- the hover or click color after it's been set to not use one, it will instead return the base_color, since that is visually
--- what is happening, even though internally hover and click don't contain anything. Attempting to set and individual value
--- for hover or click when they do not exist, will clone the base color and change the expected value.
-function Rectangle:new(x, y, w, h, base_color, hover_color, click_color, mode)
-	self.meta = {
-		x = x or 0,
-		y = y or 0,
-		w = w or 0,
-		h = h or 0,
-		base_color  = base_color  or Color(0, 0, 0, 1),
-		hover_color = hover_color or Color(255, 255, 255, 1),
-		click_color = click_color or Color(112, 112, 122, 1),
-		mode  = mode or "fill",
-		hover = false,
-		click = false
-	}
-end
-
-		--===|||GETTERS|||===--
-	
-function Rectangle:get_x() return self.meta.x end
-function Rectangle:get_y() return self.meta.y end
-function Rectangle:get_w() return self.meta.w end
-function Rectangle:get_h() return self.meta.h end
-function Rectangle:get_mode() return self.meta.mode end
-function Rectangle:get_hover() return self.meta.hover end
-function Rectangle:get_click() return self.meta.click end
-function Rectangle:get_base_color() return self.meta.base_color end
-function Rectangle:get_base_r() return self.meta.base_color.r end
-function Rectangle:get_base_g() return self.meta.base_color.g end
-function Rectangle:get_base_b() return self.meta.base_color.b end
-function Rectangle:get_base_a() return self.meta.base_color.a end
-
-function Rectangle:get_hover_color()
-	local clr = self.meta.hover_color
-	return clr == true and self.base_color or clr
-end
-
-function Rectangle:get_hover_r() return self.meta.hover_color.r end
-function Rectangle:get_hover_g() return self.meta.hover_color.g end
-function Rectangle:get_hover_b() return self.meta.hover_color.b end
-function Rectangle:get_hover_a() return self.meta.hover_color.a end
-
-function Rectangle:get_click_color()
-	local clr = self.meta.click_color
-	return clr == true and self.base_color or clr
-end
-
-function Rectangle:get_click_r() return self.meta.click_color.r end
-function Rectangle:get_click_g() return self.meta.click_color.g end
-function Rectangle:get_click_b() return self.meta.click_color.b end
-function Rectangle:get_click_a() return self.meta.click_color.a end
-
-		--===|||SETTERS|||===--
-		
-function Rectangle:set_x(val)
-	assert(type(val) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
-	self.meta.x = val
-end
-
-function Rectangle:set_y(val)
-	assert(type(val) == "number", "Unable to set y to " .. tostring(val) .. " as value is not of type 'number'.")
-	self.meta.y = val
-end
-
-function Rectangle:set_w(val)
-	assert(val >= 0, "Unable to set a width less than 0.")	
-	self.meta.w = val
-end
-
-function Rectangle:set_h(val)
-	assert(val >= 0, "Unable to set a height less than 0.")	
-	self.meta.h = val
-end
-
-function Rectangle:set_mode(val)
-	val = tostring(val):lower()
-	
-	assert(val == "fill" or val == "line", "DrawMode must be of type 'fill' or 'line'.")
-	self.meta.mode = val
-end
-
-function Rectangle:set_base_color(val)
-	assert(val:is(Color), "value must be of type 'color'.")
-	self.meta.base_color = val
-end
-
-function Rectangle:set_base_r(val) self.meta.base_color.r = val end
-function Rectangle:set_base_g(val) self.meta.base_color.g = val end
-function Rectangle:set_base_b(val) self.meta.base_color.b = val end
-function Rectangle:set_base_a(val) self.meta.base_color.a = val end
-
-function Rectangle:set_hover_color(val)
-	if val ~= true then assert(val:is(Color), "value must be of type 'color'.") end
-	self.meta.hover_color = val		
-end
-
-function Rectangle:set_hover_r(val)
-	local clr = self.meta.hover_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.r = val
-		self.meta.hover_color = clr
-	else
-		self.meta.hover_color.r = val
-	end
-end
-
-function Rectangle:set_hover_g(val)
-	local clr = self.meta.hover_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.g = val
-		self.meta.hover_color = clr
-	else
-		self.meta.hover_color.g = val
-	end
-end
-
-function Rectangle:set_hover_b(val)
- 	local clr = self.meta.hover_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.b = val
-		self.meta.hover_color = clr
-	else
-		self.meta.hover_color.b = val
-	end
-end
-
-function Rectangle:set_hover_a(val)
- 	local clr = self.meta.hover_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.a = val
-		self.meta.hover_color = clr
-	else
-		self.meta.hover_color.a = val
-	end
-end
-
-function Rectangle:set_click_color(val)
-	if val ~= true then assert(val:is(Color), "value must be of type 'color'.") end
-	self.meta.click_color = val
-end
-
-function Rectangle:set_click_r(val)
-	local clr = self.meta.click_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.r = val
-		self.meta.click_color = clr
-	else
-		self.meta.click_color.r = val
-	end
-end
-
-function Rectangle:set_click_g(val)
-	local clr = self.meta.click_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.g = val
-		self.meta.click_color = clr
-	else
-		self.meta.click_color.g = val
-	end
-end
-
-function Rectangle:set_click_b(val)
- 	local clr = self.meta.click_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.b = val
-		self.meta.click_color = clr
-	else
-		self.meta.click_color.b = val
-	end
-end
-
-function Rectangle:set_click_a(val)
- 	local clr = self.meta.click_color
-	
-	if clr == true then 
-		clr   = self.base_color:clone()
-		clr.a = val
-		self.meta.click_color = clr
-	else
-		self.meta.click_color.a = val
-	end
-end
-		
-		--===|||METHODS|||===--
-		
-function Rectangle:draw()
-	love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
-	love.graphics.rectangle(self.mode, self.x, self.y, self.w, self.h)
-end
-
-function Rectangle:update(dt, mouse)
-	local hover = self:containsPoint(mouse.pos)
-
-	if not hover then
-		self.hover = false
-		self.click = false
-	elseif hover then
-		if mouse.held then 
-			self.hover = true
-		else
-			self.hover = true
-			self.click = mouse.down
-		end
-	end
-end
-
-function Rectangle:containsPoint(point)
-	assert(point:is(Point), "Passed value was not of type 'point'.")
-	return ((self.x <= point.x and point.x <= self.x + self.w) and (self.y <= point.y and point.y <= self.y + self.h))
-end
-
-function Rectangle:__tostring()
-	return "x: " .. self.x .. ", y: " .. self.y .. ", w: " .. self.w .. ", h: " .. self.h
-end
+Rectangle = require(path .. "bin/Rectangle")
 
 	--========CONSOLE========--
 
@@ -731,13 +424,13 @@ function Console:load(ctype)
 
 	love.keyboard.setKeyRepeat(true)
 		
-	self.font.type   = love.graphics.newFont(path .. "terminal.ttf", self.font.size)
+	self.font.type   = love.graphics.newFont(path .. "assets/terminal.ttf", self.font.size)
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
 	
 	self.window.border = Rectangle(0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line")
 	
-	self.window.titlebar.icon = love.graphics.newImage(path .. "icon.png")
+	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
 	assert(self.window.titlebar.icon:getWidth()  <= 256, "The icon must be a maximum of 256 wide!")
 	assert(self.window.titlebar.icon:getHeight() <= 256, "The icon must be a maximum of 256 tall!")
