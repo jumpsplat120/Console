@@ -202,12 +202,12 @@ def_theme = {
 			bar = {
 				active = {
 					base  = Color(77, 77, 77, 1),
-					hover = true,
+					hover = Color(122, 122, 122, 1),
 					click = true 
 				},
 				inactive = {
 					base  = Color(77, 77, 77, 1),
-					hover = true,
+					hover = Color(122, 122, 122, 1),
 					click = true
 				}
 			},
@@ -268,7 +268,7 @@ def_theme = {
 			},
 			inactive = {
 				base  = Color(43, 43, 43, 1),
-				hover = Color(63, 63, 63, 1),
+				hover = Color(65, 65, 65, 1),
 				click = Color(51, 51, 51, 1)
 			}
 		}
@@ -391,7 +391,7 @@ def_theme = {
 
 function Point:new(x, y)
 	self.meta = {
-		x = x or 0
+		x = x or 0,
 		y = y or 0
 	}
 end
@@ -618,21 +618,21 @@ function Rectangle:set_click_a(val)
 		self.meta.click_color.a = val
 	end
 end
+		
 		--===|||METHODS|||===--
 		
 function Rectangle:draw()
-	love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "hover")) .. "_color"].to_love)
-	love.graphics.rectangle(self.mode, self.x, self.x, self.w, self.h)
+	love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
+	love.graphics.rectangle(self.mode, self.x, self.y, self.w, self.h)
 end
 
 function Rectangle:update(dt, mouse)
-	local hover = self:containsPoint(mouse)
-	
+	local hover = self:containsPoint(mouse.pos)
+
 	if not hover then
 		self.hover = false
 		self.click = false
 	elseif hover then
-		print(hover)
 		if mouse.held then 
 			self.hover = true
 		else
@@ -656,7 +656,7 @@ end
 --Called once on load. Used for non-love based loading.
 function Console:new()
 	local theme = def_theme[dark_theme_active and "dark" or "light"]
-	
+
 	self.color = {
 		font       = def_font_color,
 		background = def_background,
@@ -674,7 +674,7 @@ function Console:new()
 		focus = true,
 		titlebar = { 
 			size       = titlebar_size,
-			background = Rectangle(0, 0, def_width, titlebar_size, self.color.titlebar.active.base),
+			background = Rectangle(0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
 			exit       = Rectangle(def_width - titlebar_size, 0, titlebar_size, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
 			maximize   = Rectangle(def_width - titlebar_size * 2, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
 			minimize   = Rectangle(def_width - titlebar_size * 3, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
@@ -751,17 +751,28 @@ function Console:update(dt)
 	
 	self.mouse.pos.x, self.mouse.pos.y = love.mouse.getX(), love.mouse.getY()
 	self.mouse.held = self.mouse.down
-	self.mouse.down = love.mouse.isDown()
-	
-	self.window.titlebar.exit:update(dt, self.mouse.pos)
-	self.window.titlebar.minimize:update(dt, self.mouse.pos)
-	self.window.titlebar.maximize:update(dt, self.mouse.pos)
+	self.mouse.down = love.mouse.isDown(1)
+
+	self.window.titlebar.exit:update(dt, self.mouse)
+	self.window.titlebar.minimize:update(dt, self.mouse)
+	self.window.titlebar.maximize:update(dt, self.mouse)
 	
 	if focus ~= self.window.focus then
+		local focus_state, colors, entries, states
+		
+		focus_state = (focus and "" or "in") .. "active"
 		self.window.focus = focus
-		self.window.titlebar.background.base_color = self.color["titlebar_" .. (focus and "" or "in") .. "active"]
-		--= self.color["icons_" .. (focus and "" or "in") .. "active"]
-		--= self.color["border_" .. (focus and "" or "in") .. "active"]
+		
+		--entries and colors need to line up!
+		entries = {self.window.titlebar.background, self.window.titlebar.minimize, self.window.titlebar.maximize, self.window.titlebar.exit, self.window.border}
+		colors  = {self.color.titlebar[focus_state], self.color.other[focus_state], self.color.other[focus_state], self.color.exit[focus_state], self.color.border[focus_state] }
+		states  = {"base", "hover", "click"}
+		
+		for i, entry in ipairs(entries) do
+			for j, state in ipairs(states) do
+				entry[state .. "_color"] = colors[i][state]
+			end
+		end
 	end
 end
 
