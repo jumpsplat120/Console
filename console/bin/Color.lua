@@ -1,3 +1,15 @@
+local path = string.match(..., ".*/") or ""
+
+local levels = {}
+
+for level in path:gmatch("([^/]+)") do levels[#levels + 1] = level end
+
+path = ""
+
+for i, level in ipairs(levels) do if i ~= #levels then path = path .. "/" .. level end end
+
+local Object = require(path .. "/third_party/classic")
+
 Color = Object:extend()
 
 function Color:new(r, g, b, a)
@@ -47,3 +59,5 @@ end
 function Color:__tostring()
 	return "r: " .. self.r .. ", g: " .. self.g .. ", b: " .. self.b .. ", a: " .. self.a
 end
+
+return Color

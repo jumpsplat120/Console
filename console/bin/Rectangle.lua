@@ -1,3 +1,15 @@
+local path = string.match(..., ".*/") or ""
+
+local levels = {}
+
+for level in path:gmatch("([^/]+)") do levels[#levels + 1] = level end
+
+path = ""
+
+for i, level in ipairs(levels) do if i ~= #levels then path = path .. "/" .. level end end
+
+local Object = require(path .. "/third_party/classic")
+
 Rectangle = Object:extend()
 
 -- x, y, w, h and base_color are required, but do have defaults. hover and click can take a color or 'true'. Passing true
@@ -240,3 +252,5 @@ end
 function Rectangle:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y .. ", w: " .. self.w .. ", h: " .. self.h
 end
+
+return Rectangle

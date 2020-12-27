@@ -1,4 +1,16 @@
-Point     = Object:extend()
+local path = string.match(..., ".*/") or ""
+
+local levels = {}
+
+for level in path:gmatch("([^/]+)") do levels[#levels + 1] = level end
+
+path = ""
+
+for i, level in ipairs(levels) do if i ~= #levels then path = path .. "/" .. level end end
+
+local Object = require(path .. "/third_party/classic")
+
+Point = Object:extend()
 
 function Point:new(x, y)
 	self.meta = {
@@ -27,3 +39,5 @@ end
 function Point:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y
 end
+
+return Point
