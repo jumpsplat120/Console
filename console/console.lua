@@ -371,7 +371,7 @@ function Console:new()
 		focus = true,
 		titlebar = { 
 			size       = titlebar_size,
-			background = Rectangle(function() print("Clicked titlebar bg.") end, function() print("Hovering over titlebar") end, function() print("Holding on titlebar") end, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
+			background = Rectangle(function() print("Clicked titlebar bg.") end, true, function() print("Holding on titlebar") end, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
 			exit       = Rectangle(function() love.event.quit(0) end, true, true, def_width - titlebar_size, 0, titlebar_size, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
 			maximize   = Rectangle(function() if love.window.isMaximized() then love.window.restore() else love.window.maximize() end end, true, true, def_width - titlebar_size * 2, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
 			minimize   = Rectangle(function() love.window.minimize() end, true, true, def_width - titlebar_size * 3, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
@@ -387,10 +387,24 @@ function Console:new()
 		pos = 1
 	}
 	
+	self.window.border = {
+		visual = Rectangle(true, true, true, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
+		left   = Rectangle(function() print("left") end, true, true, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		right  = Rectangle(function() print("right") end, true, true, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		bottom = Rectangle(function() print("bottom") end, true, true, 0, self.window.height + self.window.titlebar.size, self.window.width, 4, true, true, true, nil, false),
+		top    = Rectangle(function() print("top") end, true, true, 0, 0, self.window.width, 4, true, true, true, nil, false),
+		corner = {
+			top_left  = Rectangle(function() print("tl corner") end, true, true, 0, 0, 6, 6, true, true, true, nil, false),
+			top_right = Rectangle(function() print("tr corner") end, true, true, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
+			bot_left  = Rectangle(function() print("bl corner") end, true, true, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
+			bot_right = Rectangle(function() print("br corner") end, true, true, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
+		}
+	}
+	
 	self.scrollbar = {
-		background = Rectangle(function() print("Clicked the scrollbar bg.") end, true, true, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
-		bar = Rectangle(function() print("Clicked the scrollbar bar.") end, true, function() print("Holding on scrollbar") end, self.window.width - scrollbar_width, self.window.titlebar.background.h + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up = Rectangle(function() print("Clicked the scrollbar up arrow.") end, true, function() print("Holding on up arrow") end, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		background = Rectangle(function() print("Clicked the scrollbar bg.") end, true, true, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, scrollbar_height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
+		bar = Rectangle(function() print("Clicked the scrollbar bar.") end, true, function() print("Holding on scrollbar") end, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
+		arrow_up = Rectangle(function() print("Clicked the scrollbar up arrow.") end, true, function() print("Holding on up arrow") end, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
 		arrow_down = Rectangle(function() print("Clicked the scrollbar down arrow.") end, true, function() print("Holding on down arrow") end, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
@@ -409,8 +423,7 @@ function Console:new()
 	}
 	
 	self.input = ""
-	self.highlight = false
-	
+	self.highlight = false	
 end
 
 --Placed in the love.load function.
@@ -431,8 +444,6 @@ function Console:load(ctype)
 	self.font.type   = love.graphics.newFont(path .. "assets/terminal.ttf", self.font.size)
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
-	
-	self.window.border = Rectangle(function() print("You clicked the window border") end, true, function() print("Holding border") end, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line")
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
@@ -458,7 +469,14 @@ function Console:update(dt)
 	self.scrollbar.bar:update(dt, self.mouse)
 	self.scrollbar.arrow_down:update(dt, self.mouse)
 	self.scrollbar.arrow_up:update(dt, self.mouse)
-	self.window.border:update(dt, self.mouse)
+	self.window.border.right:update(dt, self.mouse)
+	self.window.border.left:update(dt, self.mouse)
+	self.window.border.top:update(dt, self.mouse)
+	self.window.border.bottom:update(dt, self.mouse)
+	self.window.border.corner.top_left:update(dt, self.mouse)
+	self.window.border.corner.top_right:update(dt, self.mouse)
+	self.window.border.corner.bot_left:update(dt, self.mouse)
+	self.window.border.corner.bot_right:update(dt, self.mouse)
 	
 	if focus ~= self.window.focus then
 		local focus_state, colors, entries, states
@@ -489,7 +507,7 @@ function Console:draw()
 	self.scrollbar.bar:draw()
 	self.scrollbar.arrow_down:draw()
 	self.scrollbar.arrow_up:draw()
-	self.window.border:draw()
+	self.window.border.visual:draw()
 end
 
 --Placed in the love.resize function.

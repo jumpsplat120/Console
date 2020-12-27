@@ -22,8 +22,9 @@ Rectangle = Object:extend()
 -- be passed as a function or true. True is if you don't want anything to happen on clicking the rectangle, and pass a callback
 -- if you need there to be an action to happen on click. Valid arguments for the callback are self, dt, mouse in that order.
 -- same for hover and hold callback. Callbacks can only happen one at a time, meaning if you are hovering and holding, only holding
--- runs. If you click, click runs without hover also running in the same tick.
-function Rectangle:new(click_callback, hover_callback, hold_callback, x, y, w, h, base_color, hover_color, click_color, mode)
+-- runs. If you click, click runs without hover also running in the same tick. Pass false to visual to prevent any drawing checks
+-- at all. Callbacks can return a value, which will be returned from the update function.
+function Rectangle:new(click_callback, hover_callback, hold_callback, x, y, w, h, base_color, hover_color, click_color, mode, visual)
 	assert(type(click_callback) == "function" or click_callback == true, "Missing valid click_callback.")
 	assert(type(hover_callback) == "function" or hover_callback == true, "Missing valid hover_callback.")
 	assert(type(hold_callback) == "function" or hold_callback == true, "Missing valid hold_callback.")
@@ -43,7 +44,8 @@ function Rectangle:new(click_callback, hover_callback, hold_callback, x, y, w, h
 			click = click_callback,
 			hover = hover_callback,
 			hold  = hold_callback
-		}
+		},
+		visual = visual == nil and true or visual
 	}
 end
 
@@ -241,10 +243,17 @@ function Rectangle:set_hold_callback(val)
 	assert(type(val) == "function" or val == true, "Passed callback is not a valid function.")
 	self.meta.callback.hold = val
 end	
+
+function Rectangle:set_visual(val)
+	assert(type(val) == "boolean", "Visual can only be set to true or false.")
+	self.meta.visual = val
+end
 		
 function Rectangle:draw()
-	love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
-	love.graphics.rectangle(self.mode, self.x, self.y, self.w, self.h)
+	if self.meta.visual then
+		love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
+		love.graphics.rectangle(self.mode, self.x, self.y, self.w, self.h)
+	end
 end
 
 function Rectangle:update(dt, mouse)
@@ -268,7 +277,7 @@ function Rectangle:update(dt, mouse)
 		end
 	end
 	
-	if callback then callback(self, dt, mouse) end
+	if callback then return callback(self, dt, mouse) end
 end
 
 function Rectangle:containsPoint(point)
