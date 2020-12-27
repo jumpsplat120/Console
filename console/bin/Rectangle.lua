@@ -21,8 +21,12 @@ Rectangle = Object:extend()
 -- for hover or click when they do not exist, will clone the base color and change the expected value. Callback is required to
 -- be passed as a function or true. True is if you don't want anything to happen on clicking the rectangle, and pass a callback
 -- if you need there to be an action to happen on click. Valid arguments for the callback are self, dt, mouse in that order.
-function Rectangle:new(callback, x, y, w, h, base_color, hover_color, click_color, mode)
-	assert(type(callback) == "function" or callback == true, "Missing valid callback.")
+-- same for hover and hold callback. Callbacks can only happen one at a time, meaning if you are hovering and holding, only holding
+-- runs. If you click, click runs without hover also running in the same tick.
+function Rectangle:new(click_callback, hover_callback, hold_callback, x, y, w, h, base_color, hover_color, click_color, mode)
+	assert(type(click_callback) == "function" or click_callback == true, "Missing valid click_callback.")
+	assert(type(hover_callback) == "function" or hover_callback == true, "Missing valid hover_callback.")
+	assert(type(hold_callback) == "function" or hold_callback == true, "Missing valid hold_callback.")
 	
 	self.meta = {
 		x = x or 0,
@@ -35,7 +39,11 @@ function Rectangle:new(callback, x, y, w, h, base_color, hover_color, click_colo
 		mode  = mode or "fill",
 		hover = false,
 		click = false,
-		callback = callback
+		callback = {
+			click = click_callback,
+			hover = hover_callback,
+			hold  = hold_callback
+		}
 	}
 end
 
@@ -219,9 +227,19 @@ function Rectangle:set_click_a(val)
 	end
 end
 
-function Rectangle:set_callback(val)
+function Rectangle:set_click_callback(val)
 	assert(type(val) == "function" or val == true, "Passed callback is not a valid function.")
-	self.meta.callback = val
+	self.meta.callback.click = val
+end	
+
+function Rectangle:set_hover_callback(val)
+	assert(type(val) == "function" or val == true, "Passed callback is not a valid function.")
+	self.meta.callback.hover = val
+end	
+
+function Rectangle:set_hold_callback(val)
+	assert(type(val) == "function" or val == true, "Passed callback is not a valid function.")
+	self.meta.callback.hold = val
 end	
 		
 function Rectangle:draw()
@@ -230,23 +248,27 @@ function Rectangle:draw()
 end
 
 function Rectangle:update(dt, mouse)
-	local hover = self:containsPoint(mouse.pos)
+	local hover, callback
+	
+	hover = self:containsPoint(mouse.pos)
 
 	if not hover then
 		self.hover = false
 		self.click = false
 	elseif hover then
-		if mouse.held then 
+		callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
+		
+		if mouse.held then
 			self.hover = true
+			callback = (self.click and self.meta.callback.hold ~= true) and self.meta.callback.hold or callback
 		else
 			self.hover = true
-			
-			if self.click and not mouse.down then self.meta.callback(self, dt, mouse) end
-			
+			callback = ((self.click and not mouse.down) and self.meta.callback.click ~= true) and self.meta.callback.click or callback
 			self.click = mouse.down
-			
 		end
 	end
+	
+	if callback then callback(self, dt, mouse) end
 end
 
 function Rectangle:containsPoint(point)
