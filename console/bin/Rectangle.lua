@@ -1,5 +1,7 @@
 local path = string.match(..., ".*/") or ""
 
+local Color = require(path .. "Color")
+
 local levels = {}
 
 for level in path:gmatch("([^/]+)") do levels[#levels + 1] = level end
@@ -16,9 +18,11 @@ Rectangle = Object:extend()
 -- is basically saying that this rectangle doesn't have different colors for hovering or clicking. If attempting to access
 -- the hover or click color after it's been set to not use one, it will instead return the base_color, since that is visually
 -- what is happening, even though internally hover and click don't contain anything. Attempting to set and individual value
--- for hover or click when they do not exist, will clone the base color and change the expected value.
+-- for hover or click when they do not exist, will clone the base color and change the expected value. Callback is required to
+-- be passed as a function or true. True is if you don't want anything to happen on clicking the rectangle, and pass a callback
+-- if you need there to be an action to happen on click. Valid arguments for the callback are self, dt, mouse in that order.
 function Rectangle:new(callback, x, y, w, h, base_color, hover_color, click_color, mode)
-	assert(type(callback) == "function", "Missing valid callback.")
+	assert(type(callback) == "function" or callback == true, "Missing valid callback.")
 	
 	self.meta = {
 		x = x or 0,
@@ -216,10 +220,9 @@ function Rectangle:set_click_a(val)
 end
 
 function Rectangle:set_callback(val)
-	assert(type(val) == "function", "Passed callback is not a valid function.")
+	assert(type(val) == "function" or val == true, "Passed callback is not a valid function.")
 	self.meta.callback = val
 end	
-		--===|||METHODS|||===--
 		
 function Rectangle:draw()
 	love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
@@ -237,11 +240,13 @@ function Rectangle:update(dt, mouse)
 			self.hover = true
 		else
 			self.hover = true
+			
+			if self.click and not mouse.down then self.meta.callback(self, dt, mouse) end
+			
 			self.click = mouse.down
+			
 		end
 	end
-	
-	
 end
 
 function Rectangle:containsPoint(point)

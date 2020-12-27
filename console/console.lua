@@ -367,10 +367,10 @@ function Console:new()
 		focus = true,
 		titlebar = { 
 			size       = titlebar_size,
-			background = Rectangle(0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
-			exit       = Rectangle(def_width - titlebar_size, 0, titlebar_size, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
-			maximize   = Rectangle(def_width - titlebar_size * 2, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
-			minimize   = Rectangle(def_width - titlebar_size * 3, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
+			background = Rectangle(function() print("Clicked titlebar bg.") end, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
+			exit       = Rectangle(function() love.event.quit(0) end, def_width - titlebar_size, 0, titlebar_size, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
+			maximize   = Rectangle(function() if love.window.isMaximized() then love.window.restore() else love.window.maximize() end end, def_width - titlebar_size * 2, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
+			minimize   = Rectangle(function() love.window.minimize() end, def_width - titlebar_size * 3, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
 		},
 		flags  = { borderless = true, minwidth = def_min_width, minheight = def_min_height }
 	}
@@ -384,10 +384,10 @@ function Console:new()
 	}
 	
 	self.scrollbar = {
-		background = Rectangle(self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
-		bar = Rectangle(self.window.width - scrollbar_width, self.window.titlebar.background.h + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up = Rectangle(self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
-		arrow_down = Rectangle(self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
+		background = Rectangle(function() print("Clicked the scrollbar bg.") end, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
+		bar = Rectangle(function() print("Clicked the scrollbar bar.") end, self.window.width - scrollbar_width, self.window.titlebar.background.h + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
+		arrow_up = Rectangle(function() print("Clicked the scrollbar up arrow.") end, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_down = Rectangle(function() print("Clicked the scrollbar down arrow.") end, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
 	self.font = {
@@ -428,7 +428,7 @@ function Console:load(ctype)
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
 	
-	self.window.border = Rectangle(0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line")
+	self.window.border = Rectangle(function() print("You clicked the window border") end, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line")
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
