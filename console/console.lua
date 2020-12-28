@@ -64,7 +64,7 @@ dark_theme_active = tonumber(file:read("*a"):match("%dx(%d)")) == 0
 -- Did you know that you HAVE to use double quotes or this command fails?
 file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v CaptionHeight')
 
-titlebar_size = tonumber(file:read("*a"):match("-*%d+")) / -15
+titlebar_size = tonumber(file:read("*a"):match("-*%d+")) / -11
 
 file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v ScrollWidth')
 
@@ -192,11 +192,18 @@ function exitButton(self, dt, mouse)
 end
 
 function maxButton(self, dt, mouse)
-	if love.window.isMaximized() then love.window.restore() else love.window.maximize() end
+	if love.window.isMaximized() then 
+		print("Unmaximizing!")
+		love.window.restore() 
+	else
+		print("Maximizing!")
+		love.window.maximize()
+	end
 	return true
 end
 
 function minButton(self, dt, mouse)
+	print("Minimizing!")
 	love.window.minimize()
 	return true
 end
@@ -472,9 +479,9 @@ function Console:new()
 		titlebar = { 
 			size       = titlebar_size,
 			background = Rectangle(true, true, titlebar, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
-			exit       = Rectangle(exitButton, noPassthrough, true, def_width - titlebar_size, 0, titlebar_size, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
-			maximize   = Rectangle(maxButton, noPassthrough, true, def_width - titlebar_size * 2, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
-			minimize   = Rectangle(minButton, noPassthrough, true, def_width - titlebar_size * 3, 0, titlebar_size, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
+			exit       = Rectangle(exitButton, noPassthrough, true, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
+			maximize   = Rectangle(maxButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
+			minimize   = Rectangle(minButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
 		},
 		flags  = { borderless = true, minwidth = def_min_width, minheight = def_min_height }
 	}

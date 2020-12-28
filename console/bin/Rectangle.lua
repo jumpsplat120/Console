@@ -257,15 +257,17 @@ function Rectangle:draw()
 end
 
 function Rectangle:update(dt, mouse, skip)
-	if skip == nil then
-		local hover, callback
-		
-		hover = self:containsPoint(mouse.pos)
+	local hover, callback
+	
+	hover = self:containsPoint(mouse.pos)
 
-		if not hover then
-			self.hover = false
-			self.click = false
-		elseif hover then
+	if not hover then
+		self.hover = false
+		self.click = false
+	end
+	
+	if skip == nil then	
+		if hover then
 			callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
 			
 			if mouse.held then
