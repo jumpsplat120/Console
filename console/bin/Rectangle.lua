@@ -34,9 +34,9 @@ function Rectangle:new(click_callback, hover_callback, hold_callback, x, y, w, h
 		y = y or 0,
 		w = w or 0,
 		h = h or 0,
-		base_color  = base_color  or Color(0, 0, 0, 1),
-		hover_color = hover_color or Color(255, 255, 255, 1),
-		click_color = click_color or Color(112, 112, 122, 1),
+		base_color  = base_color  or Color(255, 0, 0, 1),
+		hover_color = hover_color or Color(0, 255, 0, 1),
+		click_color = click_color or Color(0, 0, 255, 1),
 		mode  = mode or "fill",
 		hover = false,
 		click = false,
@@ -256,28 +256,32 @@ function Rectangle:draw()
 	end
 end
 
-function Rectangle:update(dt, mouse)
-	local hover, callback
-	
-	hover = self:containsPoint(mouse.pos)
-
-	if not hover then
-		self.hover = false
-		self.click = false
-	elseif hover then
-		callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
+function Rectangle:update(dt, mouse, skip)
+	if skip == nil then
+		local hover, callback
 		
-		if mouse.held then
-			self.hover = true
-			callback = (self.click and self.meta.callback.hold ~= true) and self.meta.callback.hold or callback
-		else
-			self.hover = true
-			callback = ((self.click and not mouse.down) and self.meta.callback.click ~= true) and self.meta.callback.click or callback
-			self.click = mouse.down
+		hover = self:containsPoint(mouse.pos)
+
+		if not hover then
+			self.hover = false
+			self.click = false
+		elseif hover then
+			callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
+			
+			if mouse.held then
+				self.hover = true
+				callback = (self.click and self.meta.callback.hold ~= true) and self.meta.callback.hold or callback
+			else
+				self.hover = true
+				callback = ((self.click and not mouse.down) and self.meta.callback.click ~= true) and self.meta.callback.click or callback
+				self.click = mouse.down
+			end
 		end
+		
+		if callback then return callback(self, dt, mouse) end
+	else
+		return true
 	end
-	
-	if callback then return callback(self, dt, mouse) end
 end
 
 function Rectangle:containsPoint(point)
