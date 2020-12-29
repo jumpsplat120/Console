@@ -99,97 +99,100 @@ end
 
 -----CALLBACKS-----
 
-local passthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton
- 
-function noPassthrough()
+local borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton
+
+function borderHover(self, dt, mouse, args)
+	print("Hovering over the border...")
 	return true
 end
 
-function borderHover(self, dt, mouse)
-	--print("Hovering over the border...")
-	return true
-end
-
-function borderLeft(self, dt, mouse)
+function borderLeft(self, dt, mouse, args)
 	print("Holding left border...")
 	return true
 end
 
-function borderRight(self, dt, mouse)
+function borderRight(self, dt, mouse, args)
 	print("Holding right border...")
 	return true
 end
 
-function borderTop(self, dt, mouse)
+function borderTop(self, dt, mouse, args)
 	print("Holding top border...")
 	return true
 end
 
-function borderBot(self, dt, mouse)
+function borderBot(self, dt, mouse, args)
 	print("Holding bottom border...")
 	return true
 end
 
-function borderTLeft(self, dt, mouse)
+function borderTLeft(self, dt, mouse, args)
 	print("Holding top-left corner...")
 	return true
 end
 
-function borderTRight(self, dt, mouse)
+function borderTRight(self, dt, mouse, args)
 	print("Holding top-right corner...")
 	return true
 end
 
-function borderBLeft(self, dt, mouse)
+function borderBLeft(self, dt, mouse, args)
 	print("Holding bottom-left corner...")
 	return true
 end
 
-function borderBRight(self, dt, mouse)
+function borderBRight(self, dt, mouse, args)
 	print("Holding bottom-right corner...")
 	return true
 end
 
-function scrollbarBG(self, dt, mouse)
+function scrollbarBG(self, dt, mouse, args)
 	print("Holding scrollbar background...")
 	return true
 end
 
-function scrollbarBar(self, dt, mouse)
+function scrollbarBar(self, dt, mouse, args)
 	print("Holding scrollbar bar...")
 	return true
 end
 
-function scrollbarClickUp(self, dt, mouse)
+function scrollbarClickUp(self, dt, mouse, args)
 	print("Clicked scrollbar up arrow.")
 	return true
 end
 
-function scrollbarClickDown(self, dt, mouse)
+function scrollbarClickDown(self, dt, mouse, args)
 	print("Clicked scrollbar down arrow.")
 	return true
 end
 
-function scrollbarHoldUp(self, dt, mouse)
+function scrollbarHoldUp(self, dt, mouse, args)
 	print("Holding scrollbar up arrow...")
 	return true
 end
 
-function scrollbarHoldDown(self, dt, mouse)
+function scrollbarHoldDown(self, dt, mouse, args)
 	print("Holding scrollbar down arrow...")
 	return true
 end
 
-function titlebarHold(self, dt, mouse)
-	return "hold"
+function titlebarHold(self, dt, mouse, args)
+	self.offset = self.offset == nil and mouse.loc.pos:clone() or self.offset
+	love.window.setPosition(mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y, args[1])
+	if not love.mouse.isDown(1) then
+		self.offset = nil
+		return nil
+	else
+		return "titlebarHold"
+	end
 end
 
-function exitButton(self, dt, mouse)
+function exitButton(self, dt, mouse, args)
 	love.event.quit(0)
 	return true
 end
 
-function maxButton(self, dt, mouse)
+function maxButton(self, dt, mouse, args)
 	if love.window.isMaximized() then 
 		print("Unmaximizing!")
 		love.window.restore() 
@@ -200,17 +203,13 @@ function maxButton(self, dt, mouse)
 	return true
 end
 
-function minButton(self, dt, mouse)
+function minButton(self, dt, mouse, args)
 	print("Minimizing!")
 	love.window.minimize()
 	return true
 end
 
------OTHER FUNCTIONS-----
-
-local function moveWindow(offset, mouse, display)
-	love.window.setPosition(mouse.global.pos.x - offset.x, mouse.global.pos.y - offset.y, display)
-end
+-----OTHER FUNCTIONS----- 
 
 -----CLASSES-----
 
@@ -481,16 +480,12 @@ function Console:new()
 		height  = def_height,
 		focus   = true,
 		display = 1,
-		move = {
-			state = false,
-			offset = Point(0, 0)
-		},
-		titlebar = { 
+		titlebar = {
 			size       = titlebar_size,
-			background = Rectangle(true, true, titlebarHold, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
-			exit       = Rectangle(exitButton, noPassthrough, true, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
-			maximize   = Rectangle(maxButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
-			minimize   = Rectangle(minButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
+			background = Rectangle(true, true, titlebarHold, {false, false, "titlebarHold"}, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
+			exit       = Rectangle(exitButton, true, true, {false, false, false}, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
+			maximize   = Rectangle(maxButton, true, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
+			minimize   = Rectangle(minButton, true, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
 		},
 		flags  = { borderless = true, minwidth = def_min_width, minheight = def_min_height }
 	}
@@ -504,24 +499,24 @@ function Console:new()
 	}
 	
 	self.window.border = {
-		visual = Rectangle(true, true, true, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
-		left   = Rectangle(true, borderHover, borderLeft, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		right  = Rectangle(true, borderHover, borderRight, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		bottom = Rectangle(true, borderHover, borderBot, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
-		top    = Rectangle(true, borderHover, borderTop, 0, 0, self.window.width, 4, true, true, true, nil, false),
+		visual = Rectangle(true, true, true, {false, false, false}, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
+		left   = Rectangle(true, borderHover, borderLeft, {false, false, false}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		right  = Rectangle(true, borderHover, borderRight, {false, false, false}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		bottom = Rectangle(true, borderHover, borderBot, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
+		top    = Rectangle(true, borderHover, borderTop, {false, false, false}, 0, 0, self.window.width, 4, true, true, true, nil, false),
 		corner = {
-			top_left  = Rectangle(true, borderHover, borderTLeft, 0, 0, 6, 6, true, true, true, nil, false),
-			top_right = Rectangle(true, borderHover, borderTRight, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
-			bot_left  = Rectangle(true, borderHover, borderBLeft, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
-			bot_right = Rectangle(true, borderHover, borderBRight, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
+			top_left  = Rectangle(true, borderHover, borderTLeft, {false, false, false}, 0, 0, 6, 6, true, true, true, nil, false),
+			top_right = Rectangle(true, borderHover, borderTRight, {false, false, false}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
+			bot_left  = Rectangle(true, borderHover, borderBLeft, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
+			bot_right = Rectangle(true, borderHover, borderBRight, {false, false, false}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
 		}
 	}
 	
 	self.scrollbar = {
-		background = Rectangle(true, true, scrollbarBG, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
-		bar = Rectangle(true, noPassthrough, scrollbarBar, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
-		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
+		background = Rectangle(true, true, scrollbarBG, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
+		bar        = Rectangle(true, true, scrollbarBar, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
+		arrow_up   = Rectangle(scrollbarClickUp, true, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_down = Rectangle(scrollbarClickDown, true, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
 	self.font = {
@@ -545,6 +540,7 @@ function Console:new()
 		held = false
 	}
 	
+	self.running_callback = nil
 	self.input = ""
 	self.highlight = false
 end
@@ -585,54 +581,39 @@ function Console:update(dt)
 	self.mouse.held = self.mouse.down
 	self.mouse.down = love.mouse.isDown(1)
 	
-	if not self.window.move.state then
-		result = self.window.border.corner.top_left:update(dt, self.mouse)
-		result = self.window.border.corner.top_right:update(dt, self.mouse, result)
-		result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
-		result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
-		result = self.window.border.left:update(dt, self.mouse, result)
-		result = self.window.border.top:update(dt, self.mouse, result)
-		result = self.window.border.right:update(dt, self.mouse, result)
-		result = self.window.border.bottom:update(dt, self.mouse, result)
-		result = self.window.titlebar.exit:update(dt, self.mouse, result)
-		result = self.window.titlebar.minimize:update(dt, self.mouse, result)
-		result = self.window.titlebar.maximize:update(dt, self.mouse, result)
-		result = self.window.titlebar.background:update(dt, self.mouse, result)
-		
-		self.window.move.state = result == "hold" and true or false
-		
-		if self.window.move.state then self.window.move.offset = self.mouse.loc.pos:clone() end
-
-		result = self.scrollbar.bar:update(dt, self.mouse, result)
-		result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
-		result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
-		result = self.scrollbar.background:update(dt, self.mouse, result)
+	result = self.window.border.corner.top_left:update(dt, self.mouse, self.running_callback)
+	result = self.window.border.corner.top_right:update(dt, self.mouse, result)
+	result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
+	result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
+	result = self.window.border.left:update(dt, self.mouse, result)
+	result = self.window.border.top:update(dt, self.mouse, result)
+	result = self.window.border.right:update(dt, self.mouse, result)
+	result = self.window.border.bottom:update(dt, self.mouse, result)
+	result = self.window.titlebar.exit:update(dt, self.mouse, result)
+	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
+	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
+	result = self.window.titlebar.background:update(dt, self.mouse, result, self.window.display)
+	result = self.scrollbar.bar:update(dt, self.mouse, result)
+	result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
+	result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
+	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result)
 	
-		if focus ~= self.window.focus then
-			local focus_state, colors, entries, states
-			
-			focus_state = (focus and "" or "in") .. "active"
-			self.window.focus = focus
-			
-			--entries and colors need to line up!
-			entries = {self.window.titlebar.background, self.window.titlebar.minimize, self.window.titlebar.maximize, self.window.titlebar.exit, self.window.border}
-			colors  = {self.color.titlebar[focus_state], self.color.other[focus_state], self.color.other[focus_state], self.color.exit[focus_state], self.color.border[focus_state] }
-			states  = {"base", "hover", "click"}
-			
-			for i, entry in ipairs(entries) do
-				for j, state in ipairs(states) do
-					entry[state .. "_color"] = colors[i][state]
-				end
+	if focus ~= self.window.focus then
+		local focus_state, colors, entries, states
+		
+		focus_state = (focus and "" or "in") .. "active"
+		self.window.focus = focus
+		
+		--entries and colors need to line up!
+		entries = {self.window.titlebar.background, self.window.titlebar.minimize, self.window.titlebar.maximize, self.window.titlebar.exit, self.window.border}
+		colors  = {self.color.titlebar[focus_state], self.color.other[focus_state], self.color.other[focus_state], self.color.exit[focus_state], self.color.border[focus_state] }
+		states  = {"base", "hover", "click"}
+		
+		for i, entry in ipairs(entries) do
+			for j, state in ipairs(states) do
+				entry[state .. "_color"] = colors[i][state]
 			end
 		end
-	else
-		--Basically when we start moving the titlebar, since our mouse will move outside of the window and rect, we need to do a sort of hacky
-		--thing where all other updates stop, and we just set the window based on global mouse pos, plus a saved window offset. If we recalculate
-		--the offset, the two fall out of sync because :shrug:. Then, instead of checking the click callback, which can fail due to the mouse possibly
-		-- not being in the window at the time of release, we just check for a generic isDown and set the move state to false, to go back to normal stuff
-		love.window.setPosition(self.mouse.global.pos.x - self.window.move.offset.x, self.mouse.global.pos.y - self.window.move.offset.y, self.window.display)
-		
-		if not love.mouse.isDown(1) then self.window.move.state = false end
 	end
 	
 	x, y, self.window.display = Mouse.getGlobalMousePosition()
