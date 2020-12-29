@@ -258,8 +258,8 @@ end
 
 function Rectangle:update(dt, mouse, skip)
 	local hover, callback
-	
-	hover = self:containsPoint(mouse.pos)
+
+	hover = self:containsPoint(mouse.loc.pos)
 
 	if not hover then
 		self.hover = false

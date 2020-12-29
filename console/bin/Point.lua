@@ -32,12 +32,48 @@ function Point:set_y(val)
 	self.meta.y = val
 end
 
+function Point:set(x, y)
+	assert(type(x) == "number", "Unable to set x to " .. tostring(val) .. " as value is not of type 'number'.")
+	assert(type(y) == "number", "Unable to set y to " .. tostring(val) .. " as value is not of type 'number'.")
+	self.meta.x = x
+	self.meta.y = y
+end
+
 function Point:clone()
 	return Point(self.x, self.y)
 end
 
+function Point:get()
+	return self.x, self.y
+end
+
 function Point:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y
+end
+
+function Point:__sub(val)
+	print(self, val)
+	return Point(self.x - val.x, self.y - val.y)
+end
+
+function Point:__add(val)
+	return Point(self.x + val.x, self.y + val.y)
+end
+
+function Point:__div(val)
+	return Point(self.x / val.x, self.y / val.y)
+end
+
+function Point:__mul(val)
+	return Point(self.x * val.x, self.y * val.y)
+end
+
+function Point:__unm()
+	return Point(-self.x, -self.y)
+end
+
+function Point:__eq(val)
+	return self.x == val.x and self.y == val.y
 end
 
 return Point

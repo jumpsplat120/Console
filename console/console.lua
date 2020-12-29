@@ -4,7 +4,7 @@ path = string.match(..., ".*/") or ""
 
 inspect  = require(path .. "third_party/inspect")
 Object   = require(path .. "third_party/classic")
-mouse    = require(path .. "bin/global_mouse")
+Mouse    = require(path .. "bin/global_mouse")
 
 --[[
 				   ____ ___  _   _ ____   ___  _     _____ 
@@ -180,13 +180,11 @@ function scrollbarHoldDown(self, dt, mouse)
 	return true
 end
 
-function titlebar(self, dt, mouse)
-	print("Holding on titlebar...")
-	return true
+function titlebarHold(self, dt, mouse)
+	return "hold"
 end
 
 function exitButton(self, dt, mouse)
-	print("Exiting!")
 	love.event.quit(0)
 	return true
 end
@@ -206,6 +204,12 @@ function minButton(self, dt, mouse)
 	print("Minimizing!")
 	love.window.minimize()
 	return true
+end
+
+-----OTHER FUNCTIONS-----
+
+local function moveWindow(offset, mouse, display)
+	love.window.setPosition(mouse.global.pos.x - offset.x, mouse.global.pos.y - offset.y, display)
 end
 
 -----CLASSES-----
@@ -473,12 +477,17 @@ function Console:new()
 	}
 
 	self.window = {
-		width  = def_width,
-		height = def_height,
-		focus = true,
+		width   = def_width,
+		height  = def_height,
+		focus   = true,
+		display = 1,
+		move = {
+			state = false,
+			offset = Point(0, 0)
+		},
 		titlebar = { 
 			size       = titlebar_size,
-			background = Rectangle(true, true, titlebar, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
+			background = Rectangle(true, true, titlebarHold, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
 			exit       = Rectangle(exitButton, noPassthrough, true, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
 			maximize   = Rectangle(maxButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
 			minimize   = Rectangle(minButton, noPassthrough, true, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
@@ -524,13 +533,20 @@ function Console:new()
 	}
 	
 	self.mouse = {
-		pos  = Point(0, 0),
+		global = {
+			pos = Point(0, 0),
+			dt  = Point(0, 0)
+		},
+		loc = {
+			pos = Point(0, 0),
+			dt  = Point(0, 0)
+		},
 		down = false,
 		held = false
 	}
 	
 	self.input = ""
-	self.highlight = false	
+	self.highlight = false
 end
 
 --Placed in the love.load function.
@@ -562,48 +578,67 @@ end
 
 --Placed in the love.update function.
 function Console:update(dt)
-	local focus, result
+	local focus, result, x, y
 	
 	focus  = love.window.hasFocus()
 
-	self.mouse.pos.x, self.mouse.pos.y = love.mouse.getX(), love.mouse.getY()
 	self.mouse.held = self.mouse.down
 	self.mouse.down = love.mouse.isDown(1)
 	
-	result = self.window.border.corner.top_left:update(dt, self.mouse)
-	result = self.window.border.corner.top_right:update(dt, self.mouse, result)
-	result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
-	result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
-	result = self.window.border.left:update(dt, self.mouse, result)
-	result = self.window.border.top:update(dt, self.mouse, result)
-	result = self.window.border.right:update(dt, self.mouse, result)
-	result = self.window.border.bottom:update(dt, self.mouse, result)
-	result = self.window.titlebar.exit:update(dt, self.mouse, result)
-	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
-	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
-	result = self.window.titlebar.background:update(dt, self.mouse, result)	
-	result = self.scrollbar.bar:update(dt, self.mouse, result)
-	result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
-	result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
-	result = self.scrollbar.background:update(dt, self.mouse, result)
+	if not self.window.move.state then
+		result = self.window.border.corner.top_left:update(dt, self.mouse)
+		result = self.window.border.corner.top_right:update(dt, self.mouse, result)
+		result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
+		result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
+		result = self.window.border.left:update(dt, self.mouse, result)
+		result = self.window.border.top:update(dt, self.mouse, result)
+		result = self.window.border.right:update(dt, self.mouse, result)
+		result = self.window.border.bottom:update(dt, self.mouse, result)
+		result = self.window.titlebar.exit:update(dt, self.mouse, result)
+		result = self.window.titlebar.minimize:update(dt, self.mouse, result)
+		result = self.window.titlebar.maximize:update(dt, self.mouse, result)
+		result = self.window.titlebar.background:update(dt, self.mouse, result)
+		
+		self.window.move.state = result == "hold" and true or false
+		
+		if self.window.move.state then self.window.move.offset = self.mouse.loc.pos:clone() end
+
+		result = self.scrollbar.bar:update(dt, self.mouse, result)
+		result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
+		result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
+		result = self.scrollbar.background:update(dt, self.mouse, result)
 	
-	if focus ~= self.window.focus then
-		local focus_state, colors, entries, states
-		
-		focus_state = (focus and "" or "in") .. "active"
-		self.window.focus = focus
-		
-		--entries and colors need to line up!
-		entries = {self.window.titlebar.background, self.window.titlebar.minimize, self.window.titlebar.maximize, self.window.titlebar.exit, self.window.border}
-		colors  = {self.color.titlebar[focus_state], self.color.other[focus_state], self.color.other[focus_state], self.color.exit[focus_state], self.color.border[focus_state] }
-		states  = {"base", "hover", "click"}
-		
-		for i, entry in ipairs(entries) do
-			for j, state in ipairs(states) do
-				entry[state .. "_color"] = colors[i][state]
+		if focus ~= self.window.focus then
+			local focus_state, colors, entries, states
+			
+			focus_state = (focus and "" or "in") .. "active"
+			self.window.focus = focus
+			
+			--entries and colors need to line up!
+			entries = {self.window.titlebar.background, self.window.titlebar.minimize, self.window.titlebar.maximize, self.window.titlebar.exit, self.window.border}
+			colors  = {self.color.titlebar[focus_state], self.color.other[focus_state], self.color.other[focus_state], self.color.exit[focus_state], self.color.border[focus_state] }
+			states  = {"base", "hover", "click"}
+			
+			for i, entry in ipairs(entries) do
+				for j, state in ipairs(states) do
+					entry[state .. "_color"] = colors[i][state]
+				end
 			end
 		end
+	else
+		--Basically when we start moving the titlebar, since our mouse will move outside of the window and rect, we need to do a sort of hacky
+		--thing where all other updates stop, and we just set the window based on global mouse pos, plus a saved window offset. If we recalculate
+		--the offset, the two fall out of sync because :shrug:. Then, instead of checking the click callback, which can fail due to the mouse possibly
+		-- not being in the window at the time of release, we just check for a generic isDown and set the move state to false, to go back to normal stuff
+		love.window.setPosition(self.mouse.global.pos.x - self.window.move.offset.x, self.mouse.global.pos.y - self.window.move.offset.y, self.window.display)
+		
+		if not love.mouse.isDown(1) then self.window.move.state = false end
 	end
+	
+	x, y, self.window.display = Mouse.getGlobalMousePosition()
+	self.mouse.global.dt:set(x - self.mouse.global.pos.x, y - self.mouse.global.pos.y)
+	self.mouse.global.pos:set(x, y)
+	self.mouse.loc.dt:set(0, 0)
 end
 
 --Placed in the love.draw function.
@@ -633,6 +668,12 @@ end
 
 --Placed in the love.wheelmoved function.
 function Console:wheelmoved(x, y)
+end
+
+--Placed in the love.mousemoved function.
+function Console:mousemoved(x, y, dx, dy, istouch)
+	self.mouse.loc.pos:set(x, y)
+	self.mouse.loc.dt:set(dx, dy)
 end
 
 --Print plain white output to the console.
