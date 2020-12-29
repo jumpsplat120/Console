@@ -598,6 +598,9 @@ function Console:update(dt)
 	result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
 	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result)
 	
+	--Pass true if you don't want passthrough on rects, but don't want to hold that callback continuously
+	if self.running_callback == true then self.running_callback = nil end
+
 	if focus ~= self.window.focus then
 		local focus_state, colors, entries, states
 		
