@@ -99,51 +99,80 @@ end
 
 -----CALLBACKS-----
 
-local borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton
 
-function borderHover(self, dt, mouse, args)
-	print("Hovering over the border...")
+function noPassthrough()
 	return true
 end
 
-function borderLeft(self, dt, mouse, args)
+function borderLeftHold(self, dt, mouse, args)
 	print("Holding left border...")
 	return true
 end
 
-function borderRight(self, dt, mouse, args)
+function borderRightHold(self, dt, mouse, args)
 	print("Holding right border...")
 	return true
 end
 
-function borderTop(self, dt, mouse, args)
+function borderTopHold(self, dt, mouse, args)
 	print("Holding top border...")
 	return true
 end
 
-function borderBot(self, dt, mouse, args)
+function borderBotHold(self, dt, mouse, args)
 	print("Holding bottom border...")
 	return true
 end
 
-function borderTLeft(self, dt, mouse, args)
+function borderTLeftHold(self, dt, mouse, args)
 	print("Holding top-left corner...")
 	return true
 end
 
-function borderTRight(self, dt, mouse, args)
+function borderTRightHold(self, dt, mouse, args)
 	print("Holding top-right corner...")
 	return true
 end
 
-function borderBLeft(self, dt, mouse, args)
+function borderBLeftHold(self, dt, mouse, args)
 	print("Holding bottom-left corner...")
 	return true
 end
 
-function borderBRight(self, dt, mouse, args)
+function borderBRightHold(self, dt, mouse, args)
 	print("Holding bottom-right corner...")
 	return true
+end
+
+function borderHorizontalHover(self, dt, mouse, args)
+	love.mouse.setCursor(mouse.system.size_hor)
+	print("Hovering a horizontal border...")
+	return true
+end
+
+function borderVerticalHover(self, dt, mouse, args)
+	love.mouse.setCursor(mouse.system.size_vert)
+	print("Hovering a vertical border...")
+	return true
+end
+
+function borderLeftUpHover(self, dt, mouse, args)
+	love.mouse.setCursor(mouse.system.size_lup)
+	print("Hovering top-left/bottom-right corner...")
+	return true
+end
+
+function borderRightUpHover(self, dt, mouse, args)
+	love.mouse.setCursor(mouse.system.size_rup)
+	print("Hovering top-right/bottom-left corner...")
+	return true
+end
+
+function borderResetHover(self, dt, mouse, args)
+	if love.mouse.getCursor() ~= mouse.system.pointer then
+	print("Resetting pointer!", math.random() * 8)
+	love.mouse.setCursor(mouse.system.pointer) end
 end
 
 function scrollbarBG(self, dt, mouse, args)
@@ -483,9 +512,9 @@ function Console:new()
 		titlebar = {
 			size       = titlebar_size,
 			background = Rectangle(true, true, titlebarHold, {false, false, "titlebarHold"}, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
-			exit       = Rectangle(exitButton, true, true, {false, false, false}, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
-			maximize   = Rectangle(maxButton, true, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
-			minimize   = Rectangle(minButton, true, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
+			exit       = Rectangle(exitButton, noPassthrough, true, {false, false, false}, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
+			maximize   = Rectangle(maxButton, noPassthrough, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
+			minimize   = Rectangle(minButton, noPassthrough, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
 		},
 		flags  = { borderless = true, minwidth = def_min_width, minheight = def_min_height }
 	}
@@ -500,23 +529,24 @@ function Console:new()
 	
 	self.window.border = {
 		visual = Rectangle(true, true, true, {false, false, false}, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
-		left   = Rectangle(true, borderHover, borderLeft, {false, false, false}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		right  = Rectangle(true, borderHover, borderRight, {false, false, false}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		bottom = Rectangle(true, borderHover, borderBot, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
-		top    = Rectangle(true, borderHover, borderTop, {false, false, false}, 0, 0, self.window.width, 4, true, true, true, nil, false),
+		reset  = Rectangle(true, borderResetHover, true, {false, false, false}, 6, 6, self.window.width - 12, self.window.height + self.window.titlebar.size - 12, true, true, true, nil, false),
+		left   = Rectangle(true, borderHorizontalHover, borderLeftHold, {false, false, false}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		right  = Rectangle(true, borderHorizontalHover, borderRightHold, {false, false, false}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		bottom = Rectangle(true, borderVerticalHover, borderBotHold, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
+		top    = Rectangle(true, borderVerticalHover, borderTopHold, {false, false, false}, 0, 0, self.window.width, 4, true, true, true, nil, false),
 		corner = {
-			top_left  = Rectangle(true, borderHover, borderTLeft, {false, false, false}, 0, 0, 6, 6, true, true, true, nil, false),
-			top_right = Rectangle(true, borderHover, borderTRight, {false, false, false}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
-			bot_left  = Rectangle(true, borderHover, borderBLeft, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
-			bot_right = Rectangle(true, borderHover, borderBRight, {false, false, false}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
+			top_left  = Rectangle(true, borderLeftUpHover, borderTLeftHold, {false, false, false}, 0, 0, 6, 6, true, true, true, nil, false),
+			top_right = Rectangle(true, borderRightUpHover, borderTRightHold, {false, false, false}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
+			bot_left  = Rectangle(true, borderRightUpHover, borderBLeftHold, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
+			bot_right = Rectangle(true, borderLeftUpHover, borderBRightHold, {false, false, false}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
 		}
 	}
 	
 	self.scrollbar = {
 		background = Rectangle(true, true, scrollbarBG, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
-		bar        = Rectangle(true, true, scrollbarBar, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up   = Rectangle(scrollbarClickUp, true, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
-		arrow_down = Rectangle(scrollbarClickDown, true, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
+		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
+		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
 	self.font = {
@@ -566,6 +596,16 @@ function Console:load(ctype)
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
+	self.mouse.system = {
+		pointer   = love.mouse.getSystemCursor("arrow"),
+		hand      = love.mouse.getSystemCursor("hand"),
+		move      = love.mouse.getSystemCursor("sizeall"),
+		size_vert = love.mouse.getSystemCursor("sizens"),
+		size_hor  = love.mouse.getSystemCursor("sizewe"),
+		size_lup  = love.mouse.getSystemCursor("sizenwse"),
+		size_rup  = love.mouse.getSystemCursor("sizenesw")
+	}
+		
 	assert(self.window.titlebar.icon:getWidth()  <= 256, "The icon must be a maximum of 256 wide!")
 	assert(self.window.titlebar.icon:getHeight() <= 256, "The icon must be a maximum of 256 tall!")
 
@@ -581,7 +621,8 @@ function Console:update(dt)
 	self.mouse.held = self.mouse.down
 	self.mouse.down = love.mouse.isDown(1)
 	
-	result = self.window.border.corner.top_left:update(dt, self.mouse, self.running_callback)
+	result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
+	result = self.window.border.corner.top_left:update(dt, self.mouse, result)
 	result = self.window.border.corner.top_right:update(dt, self.mouse, result)
 	result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
 	result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
