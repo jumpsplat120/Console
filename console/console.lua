@@ -55,7 +55,7 @@ def_width  = 976
 def_height = 480
 def_min_width = 677
 def_min_width = 343
-def_font_size = 12
+def_font_size = 14
 
 file = io.popen("reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme")
 
@@ -99,7 +99,7 @@ end
 
 -----CALLBACKS-----
 
-local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
 
 function noPassthrough()
 	return true
@@ -233,6 +233,19 @@ function minButton(self, dt, mouse, args)
 	love.window.minimize()
 	return true
 end
+
+control = {
+	enter = function() print("Pressed enter!") end,
+	shift_enter = function() print("Pressed shift enter!") end,
+	up = function() print("Pressed up!") end,
+	down = function() print("Pressed down!") end,
+	left = function() print("Pressed left!") end,
+	right = function() print("Pressed right!") end,
+	ctrl_c = function() print("Pressed control C!") end,
+	ctrl_v = function() print("Pressed control V!") end,
+	ctrl_x = function() print("Pressed control X!") end,
+	ctrl_a = function() print("Pressed control A!") end
+}
 
 -----OTHER FUNCTIONS----- 
 
@@ -550,8 +563,13 @@ function Console:new()
 		size = def_font_size
 	}
 	
-	self.input_history = {
-		data = {}
+	self.keyboard = {
+		mod = {},
+		input = {
+			data = "",
+			history = {}
+		},
+		highlight = false
 	}
 	
 	self.mouse = {
@@ -568,8 +586,6 @@ function Console:new()
 	}
 	
 	self.running_callback = nil
-	self.input = ""
-	self.highlight = false
 end
 
 --Placed in the love.load function.
@@ -587,7 +603,7 @@ function Console:load(ctype)
 
 	love.keyboard.setKeyRepeat(true)
 		
-	self.font.type   = love.graphics.newFont(path .. "assets/terminal.ttf", self.font.size)
+	self.font.type   = love.graphics.newFont(path .. "assets/consola.ttf", self.font.size)
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
 	
@@ -663,6 +679,11 @@ function Console:update(dt)
 	self.mouse.global.dt:set(x - self.mouse.global.pos.x, y - self.mouse.global.pos.y)
 	self.mouse.global.pos:set(x, y)
 	self.mouse.loc.dt:set(0, 0)
+	
+	self.keyboard.mod = {}
+	
+	if love.keyboard.isDown("rctrl")  or love.keyboard.isDown("lctrl")  then self.keyboard.mod[#self.keyboard.mod + 1] = "ctrl"  end
+	if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then self.keyboard.mod[#self.keyboard.mod + 1] = "shift" end
 end
 
 --Placed in the love.draw function.
@@ -723,6 +744,12 @@ function Console:draw()
 	
 	love.graphics.line(0, 0, self.window.titlebar.maximize.h, self.window.titlebar.maximize.h)
 	love.graphics.line(self.window.titlebar.maximize.h, 0, 0, self.window.titlebar.maximize.h)
+	
+	love.graphics.origin()
+	
+	love.graphics.setFont(self.font.type)
+	
+	love.graphics.print(self.keyboard.input.data, 0, self.window.height + self.window.titlebar.size - self.font.type:getHeight())
 end
 
 --Placed in the love.resize function.
@@ -731,10 +758,15 @@ end
 
 --Placed in the love.textinput function.
 function Console:textinput(k)
+	self.keyboard.input.data = self.keyboard.input.data .. k
 end
 
 --Placed in the love.keypressed function.
-function Console:keypressed(key, scancode, isrepeat)	
+function Console:keyreleased(key, scancode)
+	--Can't use return, it's a reserved keyword
+	key = key == "return" and "enter" or key
+	if #self.keyboard.mod == 1 then key = self.keyboard.mod[1] .. "_" .. key end
+	if control[key] then control[key]() end
 end
 
 --Placed in the love.wheelmoved function.
