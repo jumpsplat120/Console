@@ -45,6 +45,7 @@ function Rectangle:new(click_callback, hover_callback, hold_callback, callback_n
 		hover_color = hover_color or Color(0, 255, 0, 1),
 		click_color = click_color or Color(0, 0, 255, 1),
 		mode  = mode or "fill",
+		held  = false,
 		hover = false,
 		click = false,
 		callback = {
@@ -63,7 +64,7 @@ function Rectangle:new(click_callback, hover_callback, hold_callback, callback_n
 end
 
 		--===|||GETTERS|||===--
-	
+
 function Rectangle:get_x() return self.meta.x end
 function Rectangle:get_y() return self.meta.y end
 function Rectangle:get_w() return self.meta.w end
@@ -297,19 +298,24 @@ function Rectangle:update(dt, mouse, skip, ...)
 	if not hover then
 		self.hover = false
 		self.click = false
+		self.held  = false
 	end
-
+	
+	if not mouse.held then self.held = false end
+	
 	if skip == nil then
 		if hover then
+			self.hover = true
 			callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
 			
-			if mouse.held then
-				self.hover = true
-				callback = (self.click and self.meta.callback.hold ~= true) and self.meta.callback.hold or callback
-			else
-				self.hover = true
-				callback = ((self.click and not mouse.down) and self.meta.callback.click ~= true) and self.meta.callback.click or callback
+			local calculated_pos = mouse.loc.pos + Point(love.window.getPosition())
+			
+			if self.held then
+				callback = self.meta.callback.hold ~= true and self.meta.callback.hold or callback
+			elseif mouse.down and (calculated_pos == mouse.global.pos) then
+				callback = self.meta.callback.click ~= true and self.meta.callback.click or callback
 				self.click = mouse.down
+				self.held  = true
 			end
 		end
 		

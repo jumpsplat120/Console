@@ -52,7 +52,6 @@ function Point:__tostring()
 end
 
 function Point:__sub(val)
-	print(self, val)
 	return Point(self.x - val.x, self.y - val.y)
 end
 

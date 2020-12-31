@@ -106,43 +106,43 @@ function noPassthrough()
 end
 
 function borderLeftHold(self, dt, mouse, args)
-	print("Holding left border...")
-	return true
+	print("Holding left border...", math.random() * 8)
+	return mouse.held and "leftHold" or true
 end
 
 function borderRightHold(self, dt, mouse, args)
-	print("Holding right border...")
-	return true
+	print("Holding right border...", math.random() * 8)
+	return mouse.held and "rightHold" or true
 end
 
 function borderTopHold(self, dt, mouse, args)
-	print("Holding top border...")
-	return true
+	print("Holding top border...", math.random() * 8)
+	return mouse.held and "topHold" or true
 end
 
 function borderBotHold(self, dt, mouse, args)
-	print("Holding bottom border...")
-	return true
+	print("Holding bottom border...", math.random() * 8)
+	return mouse.held and "botHold" or true
 end
 
 function borderTLeftHold(self, dt, mouse, args)
-	print("Holding top-left corner...")
-	return true
+	print("Holding top-left corner...", math.random() * 8)
+	return mouse.held and "tLeftHold" or true
 end
 
 function borderTRightHold(self, dt, mouse, args)
-	print("Holding top-right corner...")
-	return true
+	print("Holding top-right corner...", math.random() * 8)
+	return mouse.held and "tRightHold" or true
 end
 
 function borderBLeftHold(self, dt, mouse, args)
-	print("Holding bottom-left corner...")
-	return true
+	print("Holding bottom-left corner...", math.random() * 8)
+	return mouse.held and "bLeftHold" or true
 end
 
 function borderBRightHold(self, dt, mouse, args)
-	print("Holding bottom-right corner...")
-	return true
+	print("Holding bottom-right corner...", math.random() * 8)
+	return mouse.held and "bRightHold" or true
 end
 
 function borderHorizontalHover(self, dt, mouse, args)
@@ -166,9 +166,7 @@ function borderRightUpHover(self, dt, mouse, args)
 end
 
 function borderResetHover(self, dt, mouse, args)
-	if love.mouse.getCursor() ~= mouse.system.pointer then
-	print("Resetting pointer!", math.random() * 8)
-	love.mouse.setCursor(mouse.system.pointer) end
+	if love.mouse.getCursor() ~= mouse.system.pointer then love.mouse.setCursor(mouse.system.pointer) end
 end
 
 function scrollbarBG(self, dt, mouse, args)
@@ -203,11 +201,12 @@ end
 
 function titlebarHold(self, dt, mouse, args)
 	self.offset = self.offset == nil and mouse.loc.pos:clone() or self.offset
-	love.window.setPosition(mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y, args[1])
-	if not love.mouse.isDown(1) then
+	print(mouse.held)
+	if not mouse.held then
 		self.offset = nil
 		return nil
 	else
+		love.window.setPosition(mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y, args[1])
 		return "titlebarHold"
 	end
 end
@@ -540,15 +539,15 @@ function Console:new()
 	self.window.border = {
 		visual = Rectangle(true, true, true, {false, false, false}, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
 		reset  = Rectangle(true, borderResetHover, true, {false, false, false}, 6, 6, self.window.width - 12, self.window.height + self.window.titlebar.size - 12, true, true, true, nil, false),
-		left   = Rectangle(true, borderHorizontalHover, borderLeftHold, {false, false, false}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		right  = Rectangle(true, borderHorizontalHover, borderRightHold, {false, false, false}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		bottom = Rectangle(true, borderVerticalHover, borderBotHold, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
-		top    = Rectangle(true, borderVerticalHover, borderTopHold, {false, false, false}, 0, 0, self.window.width, 4, true, true, true, nil, false),
+		left   = Rectangle(true, borderHorizontalHover, borderLeftHold, {false, false, "leftHold"}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		right  = Rectangle(true, borderHorizontalHover, borderRightHold, {false, false, "rightHold"}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
+		bottom = Rectangle(true, borderVerticalHover, borderBotHold, {false, false, "botHold"}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
+		top    = Rectangle(true, borderVerticalHover, borderTopHold, {false, false, "topHold"}, 0, 0, self.window.width, 4, true, true, true, nil, false),
 		corner = {
-			top_left  = Rectangle(true, borderLeftUpHover, borderTLeftHold, {false, false, false}, 0, 0, 6, 6, true, true, true, nil, false),
-			top_right = Rectangle(true, borderRightUpHover, borderTRightHold, {false, false, false}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
-			bot_left  = Rectangle(true, borderRightUpHover, borderBLeftHold, {false, false, false}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
-			bot_right = Rectangle(true, borderLeftUpHover, borderBRightHold, {false, false, false}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
+			top_left  = Rectangle(true, borderLeftUpHover, borderTLeftHold, {false, false, "tLeftHold"}, 0, 0, 6, 6, true, true, true, nil, false),
+			top_right = Rectangle(true, borderRightUpHover, borderTRightHold, {false, false, "tRightHold"}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
+			bot_left  = Rectangle(true, borderRightUpHover, borderBLeftHold, {false, false, "bLeftHold"}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
+			bot_right = Rectangle(true, borderLeftUpHover, borderBRightHold, {false, false, "bRightHold"}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
 		}
 	}
 	
@@ -629,13 +628,15 @@ end
 
 --Placed in the love.update function.
 function Console:update(dt)
-	local focus, result, x, y
+	local focus, result, x, y, is_down
 	
-	focus  = love.window.hasFocus()
+	focus = love.window.hasFocus()
 
-	self.mouse.held = self.mouse.down
-	self.mouse.down = love.mouse.isDown(1)
+	x, y, is_down = Mouse.getGlobalMouseState()
 	
+	self.mouse.down = is_down == 1 and not self.mouse.held
+	self.mouse.held = is_down == 1
+
 	result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
 	result = self.window.border.corner.top_left:update(dt, self.mouse, result)
 	result = self.window.border.corner.top_right:update(dt, self.mouse, result)
@@ -675,7 +676,6 @@ function Console:update(dt)
 		end
 	end
 	
-	x, y, self.window.display = Mouse.getGlobalMousePosition()
 	self.mouse.global.dt:set(x - self.mouse.global.pos.x, y - self.mouse.global.pos.y)
 	self.mouse.global.pos:set(x, y)
 	self.mouse.loc.dt:set(0, 0)

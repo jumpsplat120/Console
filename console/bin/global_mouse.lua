@@ -10,19 +10,18 @@
 -- Use LuaJIT FFI to load in SDL2.
 local ffi = require("ffi")
 local sdl = ffi.os == "Windows" and ffi.load("SDL2") or ffi.C
+local sdl = ffi.os == "Windows" and ffi.load("SDL2") or ffi.C
 
 -- We need this for borderless dragging, in windows at least; still need to test on nix and osx.
 -- Note that for this to work, the user needs to give screen position hints to the application.
 ffi.cdef([[
-	typedef uint32_t Uint32;
-
 	typedef struct SDL_Rect
 	{
     	int x, y;
     	int w, h;
 	} SDL_Rect;
 
-	Uint32 SDL_GetGlobalMouseState(int *x, int *y); /*needs SDL 2.0.4 or higher*/
+	uint32_t SDL_GetGlobalMouseState(int *x, int *y); /*needs SDL 2.0.4 or higher*/
 	int SDL_GetNumVideoDisplays(void);
 	int SDL_GetDisplayBounds(int displayIndex, SDL_Rect* rect);
 ]])
@@ -80,7 +79,7 @@ t.toScreenPosition = function(D,x,y) -- Displaylist, horizontal pos., vertical p
 end
 
 -- Return the mouse position on the desktop.
-t.getGlobalMousePosition = function()
+t.getGlobalMouseState = function()
 	local x, y = ffi.new("int[1]", 0), ffi.new("int[1]", 0)
 	local mousedown = sdl.SDL_GetGlobalMouseState(x, y)
 	--if err ~= 1 then return false end -- Not on the desktop.
