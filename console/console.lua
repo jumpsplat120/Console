@@ -147,25 +147,21 @@ end
 
 function borderHorizontalHover(self, dt, mouse, args)
 	love.mouse.setCursor(mouse.system.size_hor)
-	print("Hovering a horizontal border...")
 	return true
 end
 
 function borderVerticalHover(self, dt, mouse, args)
 	love.mouse.setCursor(mouse.system.size_vert)
-	print("Hovering a vertical border...")
 	return true
 end
 
 function borderLeftUpHover(self, dt, mouse, args)
 	love.mouse.setCursor(mouse.system.size_lup)
-	print("Hovering top-left/bottom-right corner...")
 	return true
 end
 
 function borderRightUpHover(self, dt, mouse, args)
 	love.mouse.setCursor(mouse.system.size_rup)
-	print("Hovering top-right/bottom-left corner...")
 	return true
 end
 
@@ -511,6 +507,7 @@ function Console:new()
 		display = 1,
 		titlebar = {
 			size       = titlebar_size,
+			text       = "Custom Console",
 			background = Rectangle(true, true, titlebarHold, {false, false, "titlebarHold"}, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
 			exit       = Rectangle(exitButton, noPassthrough, true, {false, false, false}, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
 			maximize   = Rectangle(maxButton, noPassthrough, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
@@ -596,6 +593,8 @@ function Console:load(ctype)
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
+	self.window.titlebar.font = love.graphics.newFont(path .. "assets/segoe_ui.ttf", self.window.titlebar.size * .45)
+	
 	self.mouse.system = {
 		pointer   = love.mouse.getSystemCursor("arrow"),
 		hand      = love.mouse.getSystemCursor("hand"),
@@ -677,6 +676,53 @@ function Console:draw()
 	self.scrollbar.arrow_down:draw()
 	self.scrollbar.arrow_up:draw()
 	self.window.border.visual:draw()
+	
+	love.graphics.setColor(1, 1, 1, 1)
+	
+	--Titlebar icon
+	love.graphics.draw(self.window.titlebar.icon, 0, 0, 0, self.window.titlebar.size / 256, self.window.titlebar.size / 256)
+	
+	love.graphics.setFont(self.window.titlebar.font)
+	
+	love.graphics.setColor(self.color.icons[(self.window.focus and "" or "in") .. "active"].base.to_love)
+
+	--Titlebar text
+	love.graphics.print(self.window.titlebar.text, self.window.titlebar.size, math.floor((self.window.titlebar.size / 2) - (self.window.titlebar.font:getHeight() / 2)))
+
+	--Minimize icon
+	local sx, sy = 1, .5
+	love.graphics.scale(sx, sy)
+	--Note for the y on this translate; for some reason, even though it's an integer, the line gets fuzzy on a specific pixel. Adding or subtracting 1 pixel moves it into a clearer range. Prolly a love bug
+	love.graphics.translate((self.window.titlebar.minimize.x + (self.window.titlebar.minimize.w * .4)) / sx, math.ceil((self.window.titlebar.minimize.y + (self.window.titlebar.minimize.h * .5)) / sy) - 1)
+	
+	if not self.window.focus then love.graphics.setColor(self.color.icons.inactive[self.window.titlebar.minimize.hover and "hover" or "base"].to_love) end
+	
+	love.graphics.line(0, 0, self.window.titlebar.exit.w * .2, 0)
+	
+	love.graphics.origin()
+	
+	--Maximize icon	
+	sx, sy = .3, .3
+	love.graphics.scale(sx, sy)
+	
+	love.graphics.translate(math.floor((self.window.titlebar.maximize.x + (self.window.titlebar.maximize.w / 2) - ((self.window.titlebar.maximize.h * sx) / 2)) / sx), math.floor(((self.window.titlebar.maximize.h / 2) - ((self.window.titlebar.maximize.h * sy) / 2)) / sy))
+	
+	if not self.window.focus then love.graphics.setColor(self.color.icons.inactive[self.window.titlebar.maximize.hover and "hover" or "base"].to_love) end
+	
+	love.graphics.rectangle("line", 0, 0, self.window.titlebar.maximize.h, self.window.titlebar.maximize.h)
+	
+	love.graphics.origin()
+	
+	--Exit icon
+	sx, sy = .3, .3
+	love.graphics.scale(sx, sy)
+	
+	love.graphics.translate(math.floor((self.window.titlebar.exit.x + (self.window.titlebar.exit.w / 2) - ((self.window.titlebar.exit.h * sx) / 2)) / sx), math.floor(((self.window.titlebar.exit.h / 2) - ((self.window.titlebar.exit.h * sy) / 2)) / sy))
+	
+	if not self.window.focus then love.graphics.setColor(self.color.icons.inactive[self.window.titlebar.exit.hover and "hover" or "base"].to_love) end
+	
+	love.graphics.line(0, 0, self.window.titlebar.maximize.h, self.window.titlebar.maximize.h)
+	love.graphics.line(self.window.titlebar.maximize.h, 0, 0, self.window.titlebar.maximize.h)
 end
 
 --Placed in the love.resize function.
