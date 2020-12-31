@@ -603,13 +603,13 @@ function Console:load(ctype)
 
 	love.keyboard.setKeyRepeat(true)
 		
-	self.font.type   = love.graphics.newFont(path .. "assets/consola.ttf", self.font.size)
+	self.font.type   = love.graphics.newFont(path .. "assets/text.ttf", self.font.size)
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
-	self.window.titlebar.font = love.graphics.newFont(path .. "assets/segoe_ui.ttf", self.window.titlebar.size * .45)
+	self.window.titlebar.font = love.graphics.newFont(path .. "assets/ui.ttf", self.window.titlebar.size * .45)
 	
 	self.mouse.system = {
 		pointer   = love.mouse.getSystemCursor("arrow"),
