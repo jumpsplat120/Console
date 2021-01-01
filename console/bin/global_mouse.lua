@@ -81,7 +81,6 @@ end
 t.getGlobalMouseState = function()
 	local x, y = ffi.new("int[1]", 0), ffi.new("int[1]", 0)
 	local mousedown = sdl.SDL_GetGlobalMouseState(x, y)
-	--if err ~= 1 then return false end -- Not on the desktop.
 	return x[0], y[0], mousedown
 end
 

@@ -1,10 +1,11 @@
-local path, classic, inspect, Object, Color, Point, Rectangle, Console
+local path, classic, inspect, Object, Color, Point, Rectangle, Console, Window
 
 path = string.match(..., ".*/") or ""
 
-inspect  = require(path .. "third_party/inspect")
-Object   = require(path .. "third_party/classic")
-Mouse    = require(path .. "bin/global_mouse")
+inspect = require(path .. "third_party/inspect")
+Object  = require(path .. "third_party/classic")
+Mouse   = require(path .. "bin/global_mouse")
+Window  = require(path .. "bin/window_manipulation")
 
 --[[
 				   ____ ___  _   _ ____   ___  _     _____ 
@@ -105,107 +106,173 @@ function noPassthrough()
 	return true
 end
 
-function generalizedBorder(self, dt, mouse, args)
+--Some of the border extends visually "wiggle" the drawn elements. I have no idea where that's coming from because
+--the elements draw based on their own internal idea of the coord system. It's possible since Love is running 
+--during the resize, it's one loop behind kind of like with the drawn window, which means there's nothing to do
+--about it short of recompiling love to reorder when certain things happen. So for now, wiggly windows are a feature.
+function borderInit(self, dt, mouse, args)
 	if not self.initial_click_pos or not self.initial_win_size then 
 		self.initial_click_pos = mouse.global.pos:clone()
 		self.initial_win_size = { 
-		x = args[1].x, 
-		y = args[1].y, 
-		w = args[1].width, 
-		h = args[1].height }
+		x = args.window.x, 
+		y = args.window.y, 
+		w = args.window.width, 
+		h = args.window.height }
 	end
 	
 	return mouse.global.pos - self.initial_click_pos
 end
 
+function borderMath(self, new, old)
+	local pos_match, size_match = new.x ~= old.x or new.y ~= old.y, new.w ~= old.w or new.h ~= old.h
+	if pos_match then Window:move(new.x, new.y) end
+	if size_match then Window:resize(new.w, new.h) end
+	if pos_match or size_match then self:resize(new.w, new.h) end
+end
+
 function borderLeftHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x + diff.x
+		new.y = self.initial_win_size.y
+		
+		new.w = self.initial_win_size.w - diff.x
+		new.h = self.initial_win_size.h
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "leftHold"
 	else
-		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
 		
+		local w, h, _ = love.window.getMode()
+		
 		love.resize(w, h)
 		
-		return true, w, h
+		return true
 	end
 end
 
 function borderRightHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x
+		new.y = self.initial_win_size.y
+		
+		new.w = self.initial_win_size.w + diff.x
+		new.h = self.initial_win_size.h
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "rightHold"
 	else
-		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
 		
+		local w, h, _ = love.window.getMode()
+		
 		love.resize(w, h)
 		
-		return true, w, h
+		return true
 	end
 end
 
 function borderTopHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x
+		new.y = self.initial_win_size.y + diff.y
+		
+		new.w = self.initial_win_size.w
+		new.h = self.initial_win_size.h - diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "topHold"
 	else
-		local w, h = self.initial_win_size.w, self.initial_win_size.h - diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y + diff.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
 		
+		local w, h, _ = love.window.getMode()
+		
 		love.resize(w, h)
 		
-		return true, w, h
+		return true
 	end
 end
 
 function borderBotHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x
+		new.y = self.initial_win_size.y
+		
+		new.w = self.initial_win_size.w
+		new.h = self.initial_win_size.h + diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "botHold"
 	else
-		local w, h = self.initial_win_size.w, self.initial_win_size.h + diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
 		
+		local w, h, _ = love.window.getMode()
+		
 		love.resize(w, h)
 		
-		return true, w, h
+		return true
 	end
 end
 
 function borderTLeftHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x + diff.x
+		new.y = self.initial_win_size.y + diff.y
+		
+		new.w = self.initial_win_size.w - diff.x
+		new.h = self.initial_win_size.h - diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "tLeftHold"
 	else
-		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h - diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y + diff.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
+		
+		local w, h, _ = love.window.getMode()
 		
 		love.resize(w, h)
 		
@@ -214,17 +281,28 @@ function borderTLeftHold(self, dt, mouse, args)
 end
 
 function borderTRightHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x
+		new.y = self.initial_win_size.y + diff.y
+		
+		new.w = self.initial_win_size.w + diff.x
+		new.h = self.initial_win_size.h - diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "tRightHold"
 	else
-		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h - diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y + diff.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
+		
+		local w, h, _ = love.window.getMode()
 		
 		love.resize(w, h)
 		
@@ -233,17 +311,28 @@ function borderTRightHold(self, dt, mouse, args)
 end
 
 function borderBLeftHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x + diff.x
+		new.y = self.initial_win_size.y
+		
+		new.w = self.initial_win_size.w - diff.x
+		new.h = self.initial_win_size.h + diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+		
+		borderMath(args[1], new, old)
+		
 		return "bLeftHold"
 	else
-		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h + diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
+		
+		local w, h, _ = love.window.getMode()
 		
 		love.resize(w, h)
 		
@@ -252,17 +341,28 @@ function borderBLeftHold(self, dt, mouse, args)
 end
 
 function borderBRightHold(self, dt, mouse, args)
-	local diff = generalizedBorder(self, dt, mouse, args)
+	local diff = borderInit(self, dt, mouse, args[1])
 	
 	if mouse.held then
+		local new, old, _ = {}, {}
+		
+		new.x = self.initial_win_size.x
+		new.y = self.initial_win_size.y
+		
+		new.w = self.initial_win_size.w + diff.x
+		new.h = self.initial_win_size.h + diff.y
+		
+		old.w, old.h, _ = love.window.getMode()
+		old.x, old.y = love.window.getPosition()
+
+		borderMath(args[1], new, old)
+		
 		return "bRightHold"
 	else
-		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h + diff.y
-
-		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
-		
 		self.initial_click_pos = nil
 		self.initial_win_size  = nil
+		
+		local w, h, _ = love.window.getMode()
 		
 		love.resize(w, h)
 		
@@ -638,7 +738,7 @@ function Console:new()
 
 	self.window = {
 		width   = def_width,
-		height  = def_height,
+		height  = def_height + titlebar_size,
 		focus   = true,
 		display = 1,
 		titlebar = {
@@ -661,24 +761,24 @@ function Console:new()
 	}
 	
 	self.window.border = {
-		visual = Rectangle(true, true, true, {false, false, false}, 0, 0, self.window.width, self.window.height + self.window.titlebar.size, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
-		reset  = Rectangle(true, borderResetHover, true, {false, false, false}, 6, 6, self.window.width - 12, self.window.height + self.window.titlebar.size - 12, true, true, true, nil, false),
-		left   = Rectangle(true, borderHorizontalHover, borderLeftHold, {false, false, "leftHold"}, 0, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		right  = Rectangle(true, borderHorizontalHover, borderRightHold, {false, false, "rightHold"}, self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size, true, true, true, nil, false),
-		bottom = Rectangle(true, borderVerticalHover, borderBotHold, {false, false, "botHold"}, 0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4, true, true, true, nil, false),
+		visual = Rectangle(true, true, true, {false, false, false}, 0, 0, self.window.width, self.window.height, self.color.border.active.base, self.color.border.active.hover, self.color.border.active.click, "line"), 
+		reset  = Rectangle(true, borderResetHover, true, {false, false, false}, 6, 6, self.window.width - 12, self.window.height - 12, true, true, true, nil, false),
+		left   = Rectangle(true, borderHorizontalHover, borderLeftHold, {false, false, "leftHold"}, 0, 0, 4, self.window.height, true, true, true, nil, false),
+		right  = Rectangle(true, borderHorizontalHover, borderRightHold, {false, false, "rightHold"}, self.window.width - 4, 0, 4, self.window.height, true, true, true, nil, false),
+		bottom = Rectangle(true, borderVerticalHover, borderBotHold, {false, false, "botHold"}, 0, self.window.height - 4, self.window.width, 4, true, true, true, nil, false),
 		top    = Rectangle(true, borderVerticalHover, borderTopHold, {false, false, "topHold"}, 0, 0, self.window.width, 4, true, true, true, nil, false),
 		corner = {
 			top_left  = Rectangle(true, borderLeftUpHover, borderTLeftHold, {false, false, "tLeftHold"}, 0, 0, 6, 6, true, true, true, nil, false),
 			top_right = Rectangle(true, borderRightUpHover, borderTRightHold, {false, false, "tRightHold"}, self.window.width - 6, 0, 6, 6, true, true, true, nil, false),
-			bot_left  = Rectangle(true, borderRightUpHover, borderBLeftHold, {false, false, "bLeftHold"}, 0, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false),
-			bot_right = Rectangle(true, borderLeftUpHover, borderBRightHold, {false, false, "bRightHold"}, self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6, true, true, true, nil, false)
+			bot_left  = Rectangle(true, borderRightUpHover, borderBLeftHold, {false, false, "bLeftHold"}, 0, self.window.height - 6, 6, 6, true, true, true, nil, false),
+			bot_right = Rectangle(true, borderLeftUpHover, borderBRightHold, {false, false, "bRightHold"}, self.window.width - 6, self.window.height - 6, 6, 6, true, true, true, nil, false)
 		}
 	}
 	
 	self.scrollbar = {
 		background = Rectangle(true, true, scrollbarBG, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
 		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, "scrollbarHold"}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
 		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
@@ -720,7 +820,7 @@ function Console:load(ctype)
 	
 	assert(ctype == "internal" or ctype == "cmd", "Console load type '" .. ctype .. "' was not valid.")
 	
-	love.window.setMode(self.window.width, self.window.height + self.window.titlebar.size, self.window.flags)
+	love.window.setMode(self.window.width, self.window.height, self.window.flags)
 
 	love.graphics.setBackgroundColor(self.color.background.to_love)
 
@@ -764,15 +864,15 @@ function Console:update(dt)
 	self.mouse.held = is_down == 1
 
 	result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
-	result = self.window.border.corner.top_left:update(dt, self.mouse, result, self.window)
-	result = self.window.border.corner.top_right:update(dt, self.mouse, result, self.window)
-	result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self.window)
-	result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self.window)
-	result = self.window.border.left:update(dt, self.mouse, result, self.window)
-	result = self.window.border.top:update(dt, self.mouse, result, self.window)
-	result = self.window.border.right:update(dt, self.mouse, result, self.window)
-	result = self.window.border.bottom:update(dt, self.mouse, result, self.window)
-	result = self.window.titlebar.exit:update(dt, self.mouse, result, self.window)
+	result = self.window.border.corner.top_left:update(dt, self.mouse, result, self)
+	result = self.window.border.corner.top_right:update(dt, self.mouse, result, self)
+	result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self)
+	result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self)
+	result = self.window.border.left:update(dt, self.mouse, result, self)
+	result = self.window.border.top:update(dt, self.mouse, result, self)
+	result = self.window.border.right:update(dt, self.mouse, result, self)
+	result = self.window.border.bottom:update(dt, self.mouse, result, self)
+	result = self.window.titlebar.exit:update(dt, self.mouse, result, self)
 	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
 	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
 	result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self.window.display)
@@ -877,19 +977,20 @@ function Console:draw()
 	
 	love.graphics.setFont(self.font.type)
 	
-	love.graphics.print(self.keyboard.input.data, 0, self.window.height + self.window.titlebar.size - self.font.type:getHeight())
+	love.graphics.print(self.keyboard.input.data, 0, self.window.height - self.font.type:getHeight())
 end
 
 --Placed in the love.resize function.
 function Console:resize(w, h)
+	local tb_size = self.window.titlebar.size
+	
 	self.window.width, self.window.height = w, h
 	self.window.x, self.window.y = love.window.getPosition()
 	
-	--[[
-	self.window.border.visual:setDimensions(0, 0, self.window.width, self.window.height + self.window.titlebar.size)
-	self.window.border.reset:setDimensions(6, 6, self.window.width - 12, self.window.height + self.window.titlebar.size - 12,)
+	--[[self.window.border.visual:setDimensions(0, 0, w, h)
+	self.window.border.reset:setDimensions(6, 6, w - 12, h - 12)
 	self.window.border.corner.top_left:setDimensions(0, 0, 6, 6)
-	self.window.border.corner.top_right:setDimensions(self.window.width - 6, 0, 6, 6)
+	self.window.border.corner.top_right:setDimensions(w - 6, 0, 6, 6)
 	self.window.border.corner.bot_left:setDimensions(0, self.window.height + self.window.titlebar.size - 6, 6, 6)
 	self.window.border.corner.bot_right:setDimensions(self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6)
 	self.window.border.left:setDimensions(0, 0, 4, self.window.height + self.window.titlebar.size,)
@@ -998,7 +1099,7 @@ function Console:reset()
 	self.font.height = self.font.type:getHeight()
 	self.font.width  = self.font.type:getWidth(" ")
 	
-	self.window.border = Rectangle(0, 0, self.window.width, self.window.height + self.window.titlebar.height, self.color.border, true, true, "line")
+	self.window.border = Rectangle(0, 0, self.window.width, self.window.height, self.color.border, true, true, "line")
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "icon.png")
 	
