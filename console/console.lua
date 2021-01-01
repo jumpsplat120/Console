@@ -50,12 +50,12 @@ Window  = require(path .. "bin/window_manipulation")
 
 -----DEFAULT VALUES-----
 
-local def_width, def_height, def_min_width, def_min_width, def_font_size, def_font_color, dark_theme_active, file, def_theme, titlebar_size, scrollbar_width, scrollbar_height
+local def_width, def_height, def_min_width, def_min_height, def_font_size, def_font_color, dark_theme_active, file, def_theme, titlebar_size, scrollbar_width, scrollbar_height
 
 def_width  = 976
 def_height = 480
 def_min_width = 677
-def_min_width = 343
+def_min_height = 343
 def_font_size = 14
 
 file = io.popen("reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme")
@@ -124,10 +124,12 @@ function borderInit(self, dt, mouse, args)
 end
 
 function borderMath(self, new, old)
-	local pos_match, size_match = new.x ~= old.x or new.y ~= old.y, new.w ~= old.w or new.h ~= old.h
-	if pos_match then Window:move(new.x, new.y) end
-	if size_match then Window:resize(new.w, new.h) end
-	if pos_match or size_match then self:resize(new.w, new.h) end
+	if self.window.flags.minwidth < new.w and self.window.flags.minheight < new.h then
+		local pos_match, size_match = new.x ~= old.x or new.y ~= old.y, new.w ~= old.w or new.h ~= old.h
+		if pos_match then Window:move(new.x, new.y) end
+		if size_match then Window:resize(new.w, new.h) end
+		if pos_match or size_match then self:resize(new.w, new.h) end
+	end
 end
 
 function borderLeftHold(self, dt, mouse, args)
@@ -395,33 +397,59 @@ function borderResetHover(self, dt, mouse, args)
 end
 
 function scrollbarBG(self, dt, mouse, args)
-	print("Holding scrollbar background...")
-	return true
+	args[1].scrollbar.bar.y = mouse.loc.pos.y - (args[1].scrollbar.bar.h / 2)
+	return "scrollbarHold"
 end
 
-function scrollbarBar(self, dt, mouse, args)
-	print("Holding scrollbar bar...")
-	return mouse.held and "scrollbarHold" or true
+function scrollbarBar(self, dt, mouse, args)	
+	if mouse.held then
+		if not self.mouse_offset then self.mouse_offset = self.y - mouse.loc.pos.y end
+		self.y = constrain(0, args[1].scrollbar.max, mouse.loc.pos.y + self.mouse_offset)
+
+		return "scrollbarHold"
+	else
+		self.mouse_offset = nil
+		
+		return true
+	end
 end
 
 function scrollbarClickUp(self, dt, mouse, args)
-	print("Clicked scrollbar up arrow.")
+	print("Click up should affect line index, not the scrollbar.")
 	return true
 end
 
 function scrollbarClickDown(self, dt, mouse, args)
-	print("Clicked scrollbar down arrow.")
+	print("Click down should affect line index, not the scrollbar.")
 	return true
 end
 
 function scrollbarHoldUp(self, dt, mouse, args)
-	print("Holding scrollbar up arrow...")
-	return true
+	if not self.timeout then self.timeout = 0 end
+	self.timeout = self.timeout + dt
+	
+	if self.timeout > .75 then
+		if mouse.held then
+			print("Holding up arrow should affect line index, not scrollbar offset.")
+		else
+			self.offset = nil
+			return true
+		end
+	end
 end
 
 function scrollbarHoldDown(self, dt, mouse, args)
-	print("Holding scrollbar down arrow...")
-	return true
+	if not self.timeout then self.timeout = 0 end
+	self.timeout = self.timeout + dt
+	
+	if self.timeout > .75 then
+		if mouse.held then
+			print("Holding down arrow should affect line index, not scrollbar offset.")
+		else
+			self.offset = nil
+			return true
+		end
+	end
 end
 
 function titlebarHold(self, dt, mouse, args)
@@ -430,7 +458,7 @@ function titlebarHold(self, dt, mouse, args)
 		self.offset = nil
 	else
 		local x, y = mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y
-		love.window.setPosition(x, y, args[1])
+		love.window.setPosition(x, y, args[1].window.display) --Display is not being dynamically calc'd! Needs testing on multi monitor setups
 		return "titlebarHold", x, y
 	end
 end
@@ -776,7 +804,7 @@ function Console:new()
 	}
 	
 	self.scrollbar = {
-		background = Rectangle(true, true, scrollbarBG, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
+		background = Rectangle(scrollbarBG, true, true, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
 		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, "scrollbarHold"}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
 		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
 		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
@@ -808,6 +836,8 @@ function Console:new()
 		held = false
 	}
 	
+	self.scrollbar.max = self.window.height - self.window.titlebar.size - (self.scrollbar.arrow_up.h * 2) - self.scrollbar.bar.h
+
 	self.running_callback = nil
 end
 
@@ -875,11 +905,11 @@ function Console:update(dt)
 	result = self.window.titlebar.exit:update(dt, self.mouse, result, self)
 	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
 	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
-	result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self.window.display)
-	result = self.scrollbar.bar:update(dt, self.mouse, result)
-	result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
-	result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
-	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result)
+	result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self)
+	result = self.scrollbar.bar:update(dt, self.mouse, result, self)
+	result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
+	result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
+	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
 	
 	if win_x and win_y then self.window.x, self.window.y = win_x, win_y end
 	
@@ -982,29 +1012,38 @@ end
 
 --Placed in the love.resize function.
 function Console:resize(w, h)
-	local tb_size = self.window.titlebar.size
+	local tb_size, corner_size, border_size, button_width
+
+	tb_size = self.window.titlebar.size
+	
+	--magic numbers
+	button_width = tb_size * 1.4
+	corner_size = 4
+	border_size = 6
 	
 	self.window.width, self.window.height = w, h
 	self.window.x, self.window.y = love.window.getPosition()
+
+	self.window.border.visual:setDimensions(0, 0, w, h)
+	self.window.border.reset:setDimensions(border_size, border_size, w - (border_size * 2), h - (border_size * 2))
+	self.window.border.corner.top_left:setDimensions(0, 0, border_size, border_size)
+	self.window.border.corner.top_right:setDimensions(w - border_size, 0, border_size, border_size)
+	self.window.border.corner.bot_left:setDimensions(0, h - border_size, border_size, border_size)
+	self.window.border.corner.bot_right:setDimensions(w - border_size, h - border_size, border_size, border_size)
+	self.window.border.left:setDimensions(0, 0, corner_size, h)
+	self.window.border.top:setDimensions(0, 0, w, corner_size)
+	self.window.border.right:setDimensions(w - corner_size, 0, corner_size, h)
+	self.window.border.bottom:setDimensions(0, h - corner_size, w, corner_size)
+	self.window.titlebar.exit:setDimensions(w - button_width, 0, button_width, tb_size)
+	self.window.titlebar.minimize:setDimensions(w - (button_width * 3), 0, button_width, tb_size)
+	self.window.titlebar.maximize:setDimensions(w - (button_width * 2), 0, button_width, tb_size)
+	self.window.titlebar.background:setDimensions(0, 0, w, titlebar_size)
+	self.scrollbar.bar:setDimensions(w - scrollbar_width, tb_size + scrollbar_height + self.scrollbar.bar.offset, scrollbar_width, scrollbar_height)
+	self.scrollbar.arrow_down:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, scrollbar_height)
+	self.scrollbar.arrow_up:setDimensions(w - scrollbar_width, h - scrollbar_height, scrollbar_width, scrollbar_height)
+	self.scrollbar.background:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, h)
 	
-	--[[self.window.border.visual:setDimensions(0, 0, w, h)
-	self.window.border.reset:setDimensions(6, 6, w - 12, h - 12)
-	self.window.border.corner.top_left:setDimensions(0, 0, 6, 6)
-	self.window.border.corner.top_right:setDimensions(w - 6, 0, 6, 6)
-	self.window.border.corner.bot_left:setDimensions(0, self.window.height + self.window.titlebar.size - 6, 6, 6)
-	self.window.border.corner.bot_right:setDimensions(self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6)
-	self.window.border.left:setDimensions(0, 0, 4, self.window.height + self.window.titlebar.size,)
-	self.window.border.top:setDimensions(0, 0, self.window.width, 4)
-	self.window.border.right:setDimensions(self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size)
-	self.window.border.bottom:setDimensions(0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4)
-	self.window.titlebar.exit:setDimensions(def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size,)
-	self.window.titlebar.minimize:setDimensions(def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size,)
-	self.window.titlebar.maximize:setDimensions(def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size,)
-	self.window.titlebar.background:setDimensions(0, 0, def_width, titlebar_size)
-	self.scrollbar.bar:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height)
-	self.scrollbar.arrow_down:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height)
-	self.scrollbar.arrow_up:setDimensions(self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height)
-	self.scrollbar.background:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height)]]--
+	self.scrollbar.max = h - tb_size - (self.scrollbar.arrow_up.h * 2)
 end
 
 --Placed in the love.textinput function.
