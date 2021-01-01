@@ -10,7 +10,6 @@
 -- Use LuaJIT FFI to load in SDL2.
 local ffi = require("ffi")
 local sdl = ffi.os == "Windows" and ffi.load("SDL2") or ffi.C
-local sdl = ffi.os == "Windows" and ffi.load("SDL2") or ffi.C
 
 -- We need this for borderless dragging, in windows at least; still need to test on nix and osx.
 -- Note that for this to work, the user needs to give screen position hints to the application.

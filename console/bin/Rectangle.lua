@@ -299,10 +299,10 @@ function Rectangle:update(dt, mouse, skip, ...)
 		self.hover = false
 		self.click = false
 		self.held  = false
+	elseif not mouse.held then
+		self.held  = false
 	end
-	
-	if not mouse.held then self.held = false end
-	
+
 	if skip == nil then
 		if hover then
 			self.hover = true
@@ -332,6 +332,13 @@ end
 function Rectangle:containsPoint(point)
 	assert(point:is(Point), "Passed value was not of type 'point'.")
 	return ((self.x <= point.x and point.x <= self.x + self.w) and (self.y <= point.y and point.y <= self.y + self.h))
+end
+
+function Rectangle:setDimensions(x, y, w, h)
+	self.x = x
+	self.y = y
+	self.w = w
+	self.h = h
 end
 
 function Rectangle:__tostring()

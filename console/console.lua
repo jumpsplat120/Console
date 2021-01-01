@@ -99,50 +99,175 @@ end
 
 -----CALLBACKS-----
 
-local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control, generalizedBorder
 
 function noPassthrough()
 	return true
 end
 
+function generalizedBorder(self, dt, mouse, args)
+	if not self.initial_click_pos or not self.initial_win_size then 
+		self.initial_click_pos = mouse.global.pos:clone()
+		self.initial_win_size = { 
+		x = args[1].x, 
+		y = args[1].y, 
+		w = args[1].width, 
+		h = args[1].height }
+	end
+	
+	return mouse.global.pos - self.initial_click_pos
+end
+
 function borderLeftHold(self, dt, mouse, args)
-	print("Holding left border...", math.random() * 8)
-	return mouse.held and "leftHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "leftHold"
+	else
+		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true, w, h
+	end
 end
 
 function borderRightHold(self, dt, mouse, args)
-	print("Holding right border...", math.random() * 8)
-	return mouse.held and "rightHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "rightHold"
+	else
+		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true, w, h
+	end
 end
 
 function borderTopHold(self, dt, mouse, args)
-	print("Holding top border...", math.random() * 8)
-	return mouse.held and "topHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "topHold"
+	else
+		local w, h = self.initial_win_size.w, self.initial_win_size.h - diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y + diff.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true, w, h
+	end
 end
 
 function borderBotHold(self, dt, mouse, args)
-	print("Holding bottom border...", math.random() * 8)
-	return mouse.held and "botHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "botHold"
+	else
+		local w, h = self.initial_win_size.w, self.initial_win_size.h + diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true, w, h
+	end
 end
 
 function borderTLeftHold(self, dt, mouse, args)
-	print("Holding top-left corner...", math.random() * 8)
-	return mouse.held and "tLeftHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "tLeftHold"
+	else
+		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h - diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y + diff.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true
+	end
 end
 
 function borderTRightHold(self, dt, mouse, args)
-	print("Holding top-right corner...", math.random() * 8)
-	return mouse.held and "tRightHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "tRightHold"
+	else
+		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h - diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y + diff.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true
+	end
 end
 
 function borderBLeftHold(self, dt, mouse, args)
-	print("Holding bottom-left corner...", math.random() * 8)
-	return mouse.held and "bLeftHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "bLeftHold"
+	else
+		local w, h = self.initial_win_size.w - diff.x, self.initial_win_size.h + diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x + diff.x, y = self.initial_win_size.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true
+	end
 end
 
 function borderBRightHold(self, dt, mouse, args)
-	print("Holding bottom-right corner...", math.random() * 8)
-	return mouse.held and "bRightHold" or true
+	local diff = generalizedBorder(self, dt, mouse, args)
+	
+	if mouse.held then
+		return "bRightHold"
+	else
+		local w, h = self.initial_win_size.w + diff.x, self.initial_win_size.h + diff.y
+
+		love.window.updateMode(w, h + args[1].titlebar.size, { x = self.initial_win_size.x, y = self.initial_win_size.y })
+		
+		self.initial_click_pos = nil
+		self.initial_win_size  = nil
+		
+		love.resize(w, h)
+		
+		return true
+	end
 end
 
 function borderHorizontalHover(self, dt, mouse, args)
@@ -176,7 +301,7 @@ end
 
 function scrollbarBar(self, dt, mouse, args)
 	print("Holding scrollbar bar...")
-	return true
+	return mouse.held and "scrollbarHold" or true
 end
 
 function scrollbarClickUp(self, dt, mouse, args)
@@ -201,13 +326,12 @@ end
 
 function titlebarHold(self, dt, mouse, args)
 	self.offset = self.offset == nil and mouse.loc.pos:clone() or self.offset
-	print(mouse.held)
 	if not mouse.held then
 		self.offset = nil
-		return nil
 	else
-		love.window.setPosition(mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y, args[1])
-		return "titlebarHold"
+		local x, y = mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y
+		love.window.setPosition(x, y, args[1])
+		return "titlebarHold", x, y
 	end
 end
 
@@ -553,7 +677,7 @@ function Console:new()
 	
 	self.scrollbar = {
 		background = Rectangle(true, true, scrollbarBG, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
-		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
+		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, "scrollbarHold"}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
 		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
 		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
@@ -609,7 +733,9 @@ function Console:load(ctype)
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
 	self.window.titlebar.font = love.graphics.newFont(path .. "assets/ui.ttf", self.window.titlebar.size * .45)
-	
+
+	self.window.x, self.window.y = love.window.getPosition()
+
 	self.mouse.system = {
 		pointer   = love.mouse.getSystemCursor("arrow"),
 		hand      = love.mouse.getSystemCursor("hand"),
@@ -628,7 +754,7 @@ end
 
 --Placed in the love.update function.
 function Console:update(dt)
-	local focus, result, x, y, is_down
+	local focus, result, x, y, is_down, win_x, win_y
 	
 	focus = love.window.hasFocus()
 
@@ -638,22 +764,24 @@ function Console:update(dt)
 	self.mouse.held = is_down == 1
 
 	result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
-	result = self.window.border.corner.top_left:update(dt, self.mouse, result)
-	result = self.window.border.corner.top_right:update(dt, self.mouse, result)
-	result = self.window.border.corner.bot_left:update(dt, self.mouse, result)
-	result = self.window.border.corner.bot_right:update(dt, self.mouse, result)
-	result = self.window.border.left:update(dt, self.mouse, result)
-	result = self.window.border.top:update(dt, self.mouse, result)
-	result = self.window.border.right:update(dt, self.mouse, result)
-	result = self.window.border.bottom:update(dt, self.mouse, result)
-	result = self.window.titlebar.exit:update(dt, self.mouse, result)
+	result = self.window.border.corner.top_left:update(dt, self.mouse, result, self.window)
+	result = self.window.border.corner.top_right:update(dt, self.mouse, result, self.window)
+	result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self.window)
+	result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self.window)
+	result = self.window.border.left:update(dt, self.mouse, result, self.window)
+	result = self.window.border.top:update(dt, self.mouse, result, self.window)
+	result = self.window.border.right:update(dt, self.mouse, result, self.window)
+	result = self.window.border.bottom:update(dt, self.mouse, result, self.window)
+	result = self.window.titlebar.exit:update(dt, self.mouse, result, self.window)
 	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
 	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
-	result = self.window.titlebar.background:update(dt, self.mouse, result, self.window.display)
+	result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self.window.display)
 	result = self.scrollbar.bar:update(dt, self.mouse, result)
 	result = self.scrollbar.arrow_down:update(dt, self.mouse, result)
 	result = self.scrollbar.arrow_up:update(dt, self.mouse, result)
 	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result)
+	
+	if win_x and win_y then self.window.x, self.window.y = win_x, win_y end
 	
 	--Pass true if you don't want passthrough on rects, but don't want to hold that callback continuously
 	if self.running_callback == true then self.running_callback = nil end
@@ -754,6 +882,28 @@ end
 
 --Placed in the love.resize function.
 function Console:resize(w, h)
+	self.window.width, self.window.height = w, h
+	self.window.x, self.window.y = love.window.getPosition()
+	
+	--[[
+	self.window.border.visual:setDimensions(0, 0, self.window.width, self.window.height + self.window.titlebar.size)
+	self.window.border.reset:setDimensions(6, 6, self.window.width - 12, self.window.height + self.window.titlebar.size - 12,)
+	self.window.border.corner.top_left:setDimensions(0, 0, 6, 6)
+	self.window.border.corner.top_right:setDimensions(self.window.width - 6, 0, 6, 6)
+	self.window.border.corner.bot_left:setDimensions(0, self.window.height + self.window.titlebar.size - 6, 6, 6)
+	self.window.border.corner.bot_right:setDimensions(self.window.width - 6, self.window.height + self.window.titlebar.size - 6, 6, 6)
+	self.window.border.left:setDimensions(0, 0, 4, self.window.height + self.window.titlebar.size,)
+	self.window.border.top:setDimensions(0, 0, self.window.width, 4)
+	self.window.border.right:setDimensions(self.window.width - 4, 0, 4, self.window.height + self.window.titlebar.size)
+	self.window.border.bottom:setDimensions(0, self.window.height + self.window.titlebar.size - 4, self.window.width, 4)
+	self.window.titlebar.exit:setDimensions(def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size,)
+	self.window.titlebar.minimize:setDimensions(def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size,)
+	self.window.titlebar.maximize:setDimensions(def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size,)
+	self.window.titlebar.background:setDimensions(0, 0, def_width, titlebar_size)
+	self.scrollbar.bar:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height)
+	self.scrollbar.arrow_down:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height)
+	self.scrollbar.arrow_up:setDimensions(self.window.width - scrollbar_width, self.window.height + self.window.titlebar.background.h - scrollbar_height, scrollbar_width, scrollbar_height)
+	self.scrollbar.background:setDimensions(self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height)]]--
 end
 
 --Placed in the love.textinput function.
