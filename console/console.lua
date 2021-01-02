@@ -491,7 +491,10 @@ end
 
 control = {
 	backspace = function(self) print("Pressed backspace!") end,
-	enter = function(self) print("Pressed enter!") end,
+	enter = function(self)
+		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, self.keyboard.input.data)
+		self.keyboard.input.data = ""
+	end,
 	shift_enter = function(self) self.keyboard.input.data = self.keyboard.input.data .. "\n" end,
 	up = function(self) print("Pressed up!") end,
 	down = function(self) print("Pressed down!") end,
@@ -504,6 +507,81 @@ control = {
 }
 
 -----OTHER FUNCTIONS----- 
+
+function createLine(self, line)
+	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr
+	
+	res          = { height = 0, width = 0, text = {}}
+	parsed_text  = ""
+	tmp_width    = 0
+	base_index   = 1
+	parsed_index = 1
+	skip         = 0
+	
+	function add_chr(chr)
+		tmp_width = tmp_width + 1
+		if tmp_width > res.width then res.width = tmp_width end
+		parsed_text = parsed_text .. chr
+	end
+	
+	for chr in line:gmatch(".") do
+		if skip > 0 then
+		--skip over color codes
+			skip = skip - 1
+			parsed_index = parsed_index - 1
+		elseif chr == "\n" then
+		--Increase internal line height tracker
+			res.height = res.height + 1
+			if tmp_width > res.width then res.width = tmp_width end
+			tmp_width = 0
+			parsed_text = parsed_text .. chr
+		elseif chr == "c" then
+		--color code parsing
+			if line:sub(base_index + 1, base_index + 1) == "@" then
+				local r, g, b, a
+				
+				for val in line:sub(base_index + 2):gmatch("(%d%d?%d?)|") do
+					if not r then 
+						r = val 
+					elseif not g then 
+						g = val 
+					elseif not b then 
+						b = val 
+					elseif not a then 
+						a = val 
+					else
+						break
+					end
+				end
+				
+				if r and g and b and a then
+					-- the extra is the @, and the four dividers. We're already skipping c on this loop
+					skip = r:len() + g:len() + b:len() + a:len() + 5
+					res.text[#res.text + 1] = { r = tonumber(r), g = tonumber(g), b = tonumber(b), a = tonumber(a) }
+					res.text[#res.text + 1] = parsed_text
+					parsed_text = ""
+				else
+					add_chr(chr)
+				end
+			else
+				add_chr(chr)
+			end
+		else
+			add_chr(chr)
+		end
+		
+		base_index   = base_index   + 1
+		parsed_index = parsed_index + 1
+	end
+	
+	res.text[#res.text + 1] = {1, 1, 1, 1}
+	res.text[#res.text + 1] = parsed_text
+	
+	res.height = res.height + 1 * self.font.height
+	res.width  = res.width      * self.font.width
+	
+	return res
+end
 
 -----CLASSES-----
 
@@ -825,6 +903,7 @@ function Console:new()
 			data = "",
 			history = {}
 		},
+		output = {},
 		highlight = false
 	}
 	
@@ -1034,12 +1113,18 @@ function Console:draw()
 
 	love.graphics.points(1, 1, 7, 1, 1, 2, 2, 2, 6, 2, 7, 2, 1, 3, 2, 3, 3, 3, 5, 3, 6, 3, 7, 3, 2, 4, 3, 4, 5, 4, 6, 4, 3, 5, 4, 5, 5, 5, 4, 6)
 	
-	
 	--output text
+	local height = self.font.height + self.window.titlebar.size + 1
+	
 	love.graphics.origin()
 	
-	love.graphics.setColor()
+	love.graphics.setColor(1, 1, 1, 1)
 	
+	for i, line in ipairs(self.keyboard.output) do
+		print(height)
+		love.graphics.print(line.text, 0, height)
+		height = height + line.height
+	end
 	
 	--input text (unfinished)
 	
@@ -1049,7 +1134,7 @@ function Console:draw()
 	
 	love.graphics.setFont(self.font.type)
 	
-	love.graphics.print(self.keyboard.input.data, 0, self.window.height - self.font.type:getHeight())
+	love.graphics.print(self.keyboard.input.data, 0, self.window.height - self.font.height)
 end
 
 --Placed in the love.resize function.
@@ -1121,14 +1206,6 @@ end
 
 --Clear the output of the console.
 function Console:clear()
-end
-
---Set the accessory color of the console (The background of the scrollbar, the color of the cursor, and the text highlighter color.)
-function Console:setAccessoryColor(color)
-end
-
---Set the background color of the console.
-function Console:setBackgroundColor(color)
 end
 
 --Resets the console to the original state upon load.
