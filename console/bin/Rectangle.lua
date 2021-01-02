@@ -285,7 +285,7 @@ end
 				
 function Rectangle:draw()
 	if self.meta.visual then
-		love.graphics.setColor(self[(self.click and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
+		love.graphics.setColor(self[((self.click or self.held) and "click" or (self.hover and "hover" or "base")) .. "_color"].to_love)
 		love.graphics.rectangle(self.mode, self.x, self.y, self.w, self.h)
 	end
 end
@@ -295,9 +295,10 @@ function Rectangle:update(dt, mouse, skip, ...)
 
 	hover = self:containsPoint(mouse.loc.pos)
 	
+	self.click = false
+	
 	if not hover then
 		self.hover = false
-		self.click = false
 		self.held  = false
 	elseif not mouse.held then
 		self.held  = false

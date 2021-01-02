@@ -404,7 +404,7 @@ end
 function scrollbarBar(self, dt, mouse, args)	
 	if mouse.held then
 		if not self.mouse_offset then self.mouse_offset = self.y - mouse.loc.pos.y end
-		self.y = constrain(0, args[1].scrollbar.max, mouse.loc.pos.y + self.mouse_offset)
+		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.loc.pos.y + self.mouse_offset)
 
 		return "scrollbarHold"
 	else
@@ -836,8 +836,9 @@ function Console:new()
 		held = false
 	}
 	
-	self.scrollbar.max = self.window.height - self.window.titlebar.size - (self.scrollbar.arrow_up.h * 2) - self.scrollbar.bar.h
-
+	self.scrollbar.max = self.window.height - self.scrollbar.bar.h - self.scrollbar.arrow_up.h
+	self.scrollbar.min = self.window.titlebar.size + self.scrollbar.arrow_down.h
+	
 	self.running_callback = nil
 end
 
@@ -1005,6 +1006,16 @@ function Console:draw()
 	
 	love.graphics.origin()
 	
+	--up arrow
+	love.graphics.translate(self.window.width - (self.scrollbar.arrow_up.w / 2) - 3.5, self.window.titlebar.size + (self.scrollbar.arrow_up.h / 2) - 4)
+	
+	love.graphics.setColor(self.color.scrollbar.arrows[(self.window.focus and "" or "in") .. "active"][self.scrollbar.arrow_down.click and "click" or (self.scrollbar.arrow_down.held and "click" or "base")].to_love)
+
+	--arrow is drawn by hand with points, better than loading in a tiny tiny little image
+	love.graphics.points(4, 1, 3, 2, 4, 2, 5, 2, 2, 3, 3, 3, 4, 3, 5, 3, 6, 3, 1, 4, 2, 4, 3, 4, 5, 4, 6, 4, 7, 4, 1, 5, 2, 5, 6, 5, 7, 5, 1, 6, 7, 6)
+	
+	--text (unfinished)
+	
 	love.graphics.setFont(self.font.type)
 	
 	love.graphics.print(self.keyboard.input.data, 0, self.window.height - self.font.type:getHeight())
@@ -1038,7 +1049,7 @@ function Console:resize(w, h)
 	self.window.titlebar.minimize:setDimensions(w - (button_width * 3), 0, button_width, tb_size)
 	self.window.titlebar.maximize:setDimensions(w - (button_width * 2), 0, button_width, tb_size)
 	self.window.titlebar.background:setDimensions(0, 0, w, titlebar_size)
-	self.scrollbar.bar:setDimensions(w - scrollbar_width, tb_size + scrollbar_height + self.scrollbar.bar.offset, scrollbar_width, scrollbar_height)
+	self.scrollbar.bar:setDimensions(w - scrollbar_width, tb_size + scrollbar_height + self.scrollbar.bar.y, scrollbar_width, scrollbar_height)
 	self.scrollbar.arrow_down:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, scrollbar_height)
 	self.scrollbar.arrow_up:setDimensions(w - scrollbar_width, h - scrollbar_height, scrollbar_width, scrollbar_height)
 	self.scrollbar.background:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, h)
