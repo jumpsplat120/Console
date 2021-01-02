@@ -432,7 +432,7 @@ function scrollbarHoldUp(self, dt, mouse, args)
 		if mouse.held then
 			print("Holding up arrow should affect line index, not scrollbar offset.")
 		else
-			self.offset = nil
+			self.timeout = nil
 			return true
 		end
 	end
@@ -446,10 +446,14 @@ function scrollbarHoldDown(self, dt, mouse, args)
 		if mouse.held then
 			print("Holding down arrow should affect line index, not scrollbar offset.")
 		else
-			self.offset = nil
+			self.timeout = nil
 			return true
 		end
 	end
+end
+
+function titlebarGrab(self, dt, mouse, args)
+	return "titlebarHold"
 end
 
 function titlebarHold(self, dt, mouse, args)
@@ -486,16 +490,17 @@ function minButton(self, dt, mouse, args)
 end
 
 control = {
-	enter = function() print("Pressed enter!") end,
-	shift_enter = function() print("Pressed shift enter!") end,
-	up = function() print("Pressed up!") end,
-	down = function() print("Pressed down!") end,
-	left = function() print("Pressed left!") end,
-	right = function() print("Pressed right!") end,
-	ctrl_c = function() print("Pressed control C!") end,
-	ctrl_v = function() print("Pressed control V!") end,
-	ctrl_x = function() print("Pressed control X!") end,
-	ctrl_a = function() print("Pressed control A!") end
+	backspace = function(self) print("Pressed backspace!") end,
+	enter = function(self) print("Pressed enter!") end,
+	shift_enter = function(self) self.keyboard.input.data = self.keyboard.input.data .. "\n" end,
+	up = function(self) print("Pressed up!") end,
+	down = function(self) print("Pressed down!") end,
+	left = function(self) print("Pressed left!") end,
+	right = function(self) print("Pressed right!") end,
+	ctrl_c = function(self) print("Pressed control C!") end,
+	ctrl_v = function(self) print("Pressed control V!") end,
+	ctrl_x = function(self) print("Pressed control X!") end,
+	ctrl_a = function(self) print("Pressed control A!") end
 }
 
 -----OTHER FUNCTIONS----- 
@@ -772,7 +777,7 @@ function Console:new()
 		titlebar = {
 			size       = titlebar_size,
 			text       = "Custom Console",
-			background = Rectangle(true, true, titlebarHold, {false, false, "titlebarHold"}, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
+			background = Rectangle(titlebarGrab, true, titlebarHold, {false, false, "titlebarHold"}, 0, 0, def_width, titlebar_size, self.color.titlebar.active.base, true, true),
 			exit       = Rectangle(exitButton, noPassthrough, true, {false, false, false}, def_width - (titlebar_size * 1.4), 0, titlebar_size * 1.4, titlebar_size, self.color.exit.active.base, self.color.exit.active.hover, self.color.exit.active.click),
 			maximize   = Rectangle(maxButton, noPassthrough, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 2), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click),
 			minimize   = Rectangle(minButton, noPassthrough, true, {false, false, false}, def_width - ((titlebar_size * 1.4) * 3), 0, titlebar_size * 1.4, titlebar_size, self.color.other.active.base, self.color.other.active.hover, self.color.other.active.click)
@@ -863,6 +868,8 @@ function Console:load(ctype)
 	
 	self.window.titlebar.icon = love.graphics.newImage(path .. "assets/icon.png")
 	
+	self.window.titlebar.icon_imageData = love.image.newImageData(path .. "assets/icon.png")
+	
 	self.window.titlebar.font = love.graphics.newFont(path .. "assets/ui.ttf", self.window.titlebar.size * .45)
 
 	self.window.x, self.window.y = love.window.getPosition()
@@ -876,6 +883,10 @@ function Console:load(ctype)
 		size_lup  = love.mouse.getSystemCursor("sizenwse"),
 		size_rup  = love.mouse.getSystemCursor("sizenesw")
 	}
+		
+	love.window.setTitle(self.window.titlebar.text)
+	
+	love.window.setIcon(self.window.titlebar.icon_imageData)
 		
 	assert(self.window.titlebar.icon:getWidth()  <= 256, "The icon must be a maximum of 256 wide!")
 	assert(self.window.titlebar.icon:getHeight() <= 256, "The icon must be a maximum of 256 tall!")
@@ -1011,10 +1022,30 @@ function Console:draw()
 	
 	love.graphics.setColor(self.color.scrollbar.arrows[(self.window.focus and "" or "in") .. "active"][self.scrollbar.arrow_down.click and "click" or (self.scrollbar.arrow_down.held and "click" or "base")].to_love)
 
-	--arrow is drawn by hand with points, better than loading in a tiny tiny little image
+	--At some point consider using imageData for this instead of points
 	love.graphics.points(4, 1, 3, 2, 4, 2, 5, 2, 2, 3, 3, 3, 4, 3, 5, 3, 6, 3, 1, 4, 2, 4, 3, 4, 5, 4, 6, 4, 7, 4, 1, 5, 2, 5, 6, 5, 7, 5, 1, 6, 7, 6)
 	
-	--text (unfinished)
+	--down arrow
+	love.graphics.origin()
+	
+	love.graphics.translate(self.window.width - (self.scrollbar.arrow_up.w / 2) - 3.5, self.window.height - (self.scrollbar.arrow_up.h / 2) - 4)
+	
+	love.graphics.setColor(self.color.scrollbar.arrows[(self.window.focus and "" or "in") .. "active"][self.scrollbar.arrow_up.click and "click" or (self.scrollbar.arrow_up.held and "click" or "base")].to_love)
+
+	love.graphics.points(1, 1, 7, 1, 1, 2, 2, 2, 6, 2, 7, 2, 1, 3, 2, 3, 3, 3, 5, 3, 6, 3, 7, 3, 2, 4, 3, 4, 5, 4, 6, 4, 3, 5, 4, 5, 5, 5, 4, 6)
+	
+	
+	--output text
+	love.graphics.origin()
+	
+	love.graphics.setColor()
+	
+	
+	--input text (unfinished)
+	
+	love.graphics.origin()
+	
+	love.graphics.setColor(1, 1, 1, 1)
 	
 	love.graphics.setFont(self.font.type)
 	
@@ -1067,7 +1098,7 @@ function Console:keyreleased(key, scancode)
 	--Can't use return, it's a reserved keyword
 	key = key == "return" and "enter" or key
 	if #self.keyboard.mod == 1 then key = self.keyboard.mod[1] .. "_" .. key end
-	if control[key] then control[key]() end
+	if control[key] then control[key](self) end
 end
 
 --Placed in the love.wheelmoved function.
