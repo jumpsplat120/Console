@@ -494,8 +494,14 @@ control = {
 	enter = function(self)
 		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, self.keyboard.input.data)
 		self.keyboard.input.data = ""
+		self.keyboard.input.current_width = 0
+		self.keyboard.input.line_breaks = 0
 	end,
-	shift_enter = function(self) self.keyboard.input.data = self.keyboard.input.data .. "\n" end,
+	shift_enter = function(self) 
+		self.keyboard.input.data = self.keyboard.input.data .. "\n"
+		self.keyboard.input.line_breaks = self.keyboard.input.line_breaks + 1
+		self.keyboard.input.current_width = 0
+	end,
 	up = function(self) print("Pressed up!") end,
 	down = function(self) print("Pressed down!") end,
 	left = function(self) print("Pressed left!") end,
@@ -509,9 +515,9 @@ control = {
 -----OTHER FUNCTIONS----- 
 
 function createLine(self, line)
-	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr
+	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr, xtra_line_breaks
 	
-	res          = { height = 0, width = 0, text = {}}
+	res          = { height = 0, width = 0, text = {{1, 1, 1, 1}}}
 	parsed_text  = ""
 	tmp_width    = 0
 	base_index   = 1
@@ -557,8 +563,8 @@ function createLine(self, line)
 				if r and g and b and a then
 					-- the extra is the @, and the four dividers. We're already skipping c on this loop
 					skip = r:len() + g:len() + b:len() + a:len() + 5
-					res.text[#res.text + 1] = { r = tonumber(r), g = tonumber(g), b = tonumber(b), a = tonumber(a) }
 					res.text[#res.text + 1] = parsed_text
+					res.text[#res.text + 1] = { tonumber(r), tonumber(g), tonumber(b), tonumber(a) }
 					parsed_text = ""
 				else
 					add_chr(chr)
@@ -574,11 +580,13 @@ function createLine(self, line)
 		parsed_index = parsed_index + 1
 	end
 	
-	res.text[#res.text + 1] = {1, 1, 1, 1}
 	res.text[#res.text + 1] = parsed_text
 	
-	res.height = res.height + 1 * self.font.height
-	res.width  = res.width      * self.font.width
+	res.width = res.width * self.font.width
+	
+	xtra_line_breaks = math.floor(res.width / (self.window.width - self.scrollbar.background.w - self.font.width - 4))
+	
+	res.height = (res.height + 1 + xtra_line_breaks) * self.font.height
 	
 	return res
 end
@@ -852,6 +860,7 @@ function Console:new()
 		height  = def_height + titlebar_size,
 		focus   = true,
 		display = 1,
+		scroll_offset = 0,
 		titlebar = {
 			size       = titlebar_size,
 			text       = "Custom Console",
@@ -864,11 +873,9 @@ function Console:new()
 	}
 	
 	self.cursor = {
-		showing = {
-			timer = 0,
-			is    = true
-		},
-		pos = 1
+		timer = 0,
+		pos = 0,
+		showing = true
 	}
 	
 	self.window.border = {
@@ -901,9 +908,12 @@ function Console:new()
 		mod = {},
 		input = {
 			data = "",
+			line_breaks = 0,
+			current_width = 0,
 			history = {}
 		},
 		output = {},
+		max_output = 10000,
 		highlight = false
 	}
 	
@@ -1031,6 +1041,13 @@ function Console:update(dt)
 	
 	self.keyboard.mod = {}
 	
+	self.cursor.timer = self.cursor.timer + dt
+	
+	if self.cursor.timer > .5 then
+		self.cursor.timer = 0
+		self.cursor.showing = not self.cursor.showing
+	end
+	
 	if love.keyboard.isDown("rctrl")  or love.keyboard.isDown("lctrl")  then self.keyboard.mod[#self.keyboard.mod + 1] = "ctrl"  end
 	if love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift") then self.keyboard.mod[#self.keyboard.mod + 1] = "shift" end
 end
@@ -1113,28 +1130,56 @@ function Console:draw()
 
 	love.graphics.points(1, 1, 7, 1, 1, 2, 2, 2, 6, 2, 7, 2, 1, 3, 2, 3, 3, 3, 5, 3, 6, 3, 7, 3, 2, 4, 3, 4, 5, 4, 6, 4, 3, 5, 4, 5, 5, 5, 4, 6)
 	
-	--output text
-	local height = self.font.height + self.window.titlebar.size + 1
-	
 	love.graphics.origin()
-	
-	love.graphics.setColor(1, 1, 1, 1)
-	
-	for i, line in ipairs(self.keyboard.output) do
-		print(height)
-		love.graphics.print(line.text, 0, height)
-		height = height + line.height
+		
+	--output text
+	local height, wrap, visible_lines
+		
+	--magic numbers here are padding
+	height = 1
+	wrap   = self.window.width - self.scrollbar.background.w - self.font.width - 4
+		
+	if #self.keyboard.output > 0 then
+		visible_lines = {}
+		
+		love.graphics.setColor(self.color.font.to_love)
+		
+		love.graphics.setFont(self.font.type)
+		
+		for i = #self.keyboard.output, self.window.scroll_offset + 1, -1 do
+			visible_lines[#visible_lines + 1] = self.keyboard.output[i]
+			height = height + self.keyboard.output[i].height
+		end
+		
+		height = self.window.titlebar.size + 1
+		
+		for i = #visible_lines, 1, -1 do
+			love.graphics.printf(visible_lines[i].text, 2, math.floor(height + .5), wrap)
+			height = height + visible_lines[i].height
+		end
 	end
 	
-	--input text (unfinished)
+	--input text highlight
 	
-	love.graphics.origin()
 	
-	love.graphics.setColor(1, 1, 1, 1)
+	--input text
+	local input_width, input_line_breaks
+	
+	input_width       = self.font.type:getWidth(self.keyboard.input.data)
+	input_line_breaks = math.floor(input_width / wrap) + self.keyboard.input.line_breaks
+		
+	love.graphics.setColor(self.color.font.to_love)
 	
 	love.graphics.setFont(self.font.type)
+		
+	love.graphics.printf(self.keyboard.input.data, 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height), wrap)
 	
-	love.graphics.print(self.keyboard.input.data, 0, self.window.height - self.font.height)
+	--cursor
+	if self.cursor.showing then
+		love.graphics.setColor(self.color.font.to_love)
+		
+		love.graphics.rectangle("fill", self.keyboard.input.current_width + 3, self.window.height - (self.font.height / 2), self.font.width, self.font.height / 3)
+	end
 end
 
 --Placed in the love.resize function.
@@ -1175,7 +1220,11 @@ end
 
 --Placed in the love.textinput function.
 function Console:textinput(k)
+	local increase = self.keyboard.input.current_width + self.font.width
+	
 	self.keyboard.input.data = self.keyboard.input.data .. k
+	self.keyboard.input.current_width = increase > self.window.width - self.scrollbar.background.w - self.font.width - 4 and self.font.width or increase
+	self.cursor.timer = 0
 end
 
 --Placed in the love.keypressed function.
@@ -1188,6 +1237,7 @@ end
 
 --Placed in the love.wheelmoved function.
 function Console:wheelmoved(x, y)
+	self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + (y > 0 and -1 or (y < 0 and 1 or 0)))
 end
 
 --Placed in the love.mousemoved function.
