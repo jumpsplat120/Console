@@ -491,37 +491,69 @@ end
 
 control = {
 	backspace = function(self)
-		local text_len, decrease
+		local text_len, decrease, text
 		
-		text_len = self.keyboard.input.data:len()
+		text     = self.keyboard.input.data
+		text_len = text:len()
 		decrease = self.keyboard.input.current_width - self.font.width
 		
 		if self.keyboard.highlight then
 			self.keyboard.input.data = ""
 			self.keyboard.input.current_width = 0
+			self.keyboard.input.line_breaks   = 0
 			self.cursor.pos = 0
 		else
-			self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data:sub(1, text_len - 1) or self.keyboard.input.data:sub(1, self.cursor.pos - 1) .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
+			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
+			print(self.keyboard.input.data)
 			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
-			self.cursor.pos = self.cursor.pos - 1
+			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
 		end
 		
 		self.cursor.timer = 0
 		self.cursor.showing = true
 	end,
 	enter = function(self)
-		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, self.keyboard.input.data)
+		local input = self.keyboard.input
+		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, input.data)
+		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width, lb = input.line_breaks}
 		self.keyboard.input.data = ""
 		self.keyboard.input.current_width = 0
-		self.keyboard.input.line_breaks = 0
+		self.keyboard.input.line_breaks   = 0
+		self.cursor.pos = 0
 	end,
 	shift_enter = function(self) 
 		self.keyboard.input.data = self.keyboard.input.data .. "\n"
 		self.keyboard.input.line_breaks = self.keyboard.input.line_breaks + 1
 		self.keyboard.input.current_width = 0
 	end,
-	up = function(self) print("Pressed up!") end,
-	down = function(self) print("Pressed down!") end,
+	up = function(self)
+		local input, history_len
+		
+		input       = self.keyboard.input
+		history_len = #input.history
+		
+		if history_len > 0 then
+		self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
+		self.keyboard.input.data          = input.history[input.history_index].data
+		self.keyboard.input.current_width = input.history[input.history_index].cur_width
+		self.keyboard.input.line_breaks   = input.history[input.history_index].lb
+		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+		end
+	end,
+	down = function(self) 
+		local input, history_len
+		
+		input       = self.keyboard.input
+		history_len = #input.history
+		
+		if history_len > 0 then
+		self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
+		self.keyboard.input.data          = input.history[input.history_index].data
+		self.keyboard.input.current_width = input.history[input.history_index].cur_width
+		self.keyboard.input.line_breaks   = input.history[input.history_index].lb
+		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+		end 
+	end,
 	left = function(self)
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
 		self.cursor.timer = 0
@@ -940,6 +972,7 @@ function Console:new()
 			line_breaks = 0,
 			current_width = 0,
 			wrap_width_in_chars = 0,
+			history_index = 0,
 			history = {}
 		},
 		output = {},
@@ -1221,10 +1254,17 @@ function Console:draw()
 		cursor_pixel_pos = self.cursor.pos * self.font.width
 		str_len = self.keyboard.input.data:len() * self.font.width
 		
+		x = cursor_pixel_pos - ilb_in_pixels + 2
 		y = self.window.height - (self.font.height / 2)
-		x = cursor_pixel_pos - ilb_in_pixels + (math.ceil((str_len - cursor_pixel_pos) / (wrap + self.keyboard.input.current_width)) * wrap) + 2
 		
-		love.graphics.setColor(self.color.font.base.to_love)
+		if input_line_breaks > 0 and cursor_pixel_pos < ilb_in_pixels then
+			local lines_moved_up = math.ceil((str_len - cursor_pixel_pos) / (wrap + self.keyboard.input.current_width))
+
+			x = x + (lines_moved_up * wrap)
+			y = y - (lines_moved_up * self.font.height)
+		end
+		
+		love.graphics.setColor(self.color.font[(self.keyboard.highlight and cursor_pixel_pos < str_len) and "inverted" or "base"].to_love)
 		
 		love.graphics.rectangle("fill", x, y, self.font.width, self.font.height / 4)
 	end
