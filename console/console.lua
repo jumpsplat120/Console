@@ -490,7 +490,25 @@ function minButton(self, dt, mouse, args)
 end
 
 control = {
-	backspace = function(self) print("Pressed backspace!") end,
+	backspace = function(self)
+		local text_len, decrease
+		
+		text_len = self.keyboard.input.data:len()
+		decrease = self.keyboard.input.current_width - self.font.width
+		
+		if self.keyboard.highlight then
+			self.keyboard.input.data = ""
+			self.keyboard.input.current_width = 0
+			self.cursor.pos = 0
+		else
+			self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data:sub(1, text_len - 1) or self.keyboard.input.data:sub(1, self.cursor.pos - 1) .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
+			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
+			self.cursor.pos = self.cursor.pos - 1
+		end
+		
+		self.cursor.timer = 0
+		self.cursor.showing = true
+	end,
 	enter = function(self)
 		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, self.keyboard.input.data)
 		self.keyboard.input.data = ""
@@ -504,12 +522,20 @@ control = {
 	end,
 	up = function(self) print("Pressed up!") end,
 	down = function(self) print("Pressed down!") end,
-	left = function(self) print("Pressed left!") end,
-	right = function(self) print("Pressed right!") end,
+	left = function(self)
+		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
+		self.cursor.timer = 0
+		self.cursor.showing = true
+	end,
+	right = function(self)
+		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
+		self.cursor.timer = 0
+		self.cursor.showing = true
+	end,
 	ctrl_c = function(self) print("Pressed control C!") end,
 	ctrl_v = function(self) print("Pressed control V!") end,
 	ctrl_x = function(self) print("Pressed control X!") end,
-	ctrl_a = function(self) print("Pressed control A!") end
+	ctrl_a = function(self) self.keyboard.highlight = not self.keyboard.highlight end
 }
 
 -----OTHER FUNCTIONS----- 
@@ -602,6 +628,8 @@ Color = require(path .. "bin/Color")
 def_background = Color(12, 12, 12, 1)
 
 def_font_color = Color(204, 204, 204, 1)
+
+def_font_invert = Color(51, 51, 51, 1)
 
 def_theme = {
 	dark = {
@@ -845,7 +873,7 @@ function Console:new()
 	local theme = def_theme[dark_theme_active and "dark" or "light"]
 
 	self.color = {
-		font       = def_font_color,
+		font       = { base = def_font_color, inverted = def_font_invert },
 		background = def_background,
 		titlebar   = theme.titlebar,
 		icons      = theme.icons,
@@ -911,6 +939,7 @@ function Console:new()
 			data = "",
 			line_breaks = 0,
 			current_width = 0,
+			wrap_width_in_chars = 0,
 			history = {}
 		},
 		output = {},
@@ -966,6 +995,8 @@ function Console:load(ctype)
 	
 	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
 	
+	self.keyboard.wrap_width_in_chars = math.floor((self.window.width - self.scrollbar.background.w - self.font.width - 4) / self.font.width)
+
 	self.mouse.system = {
 		pointer   = love.mouse.getSystemCursor("arrow"),
 		hand      = love.mouse.getSystemCursor("hand"),
@@ -1140,12 +1171,12 @@ function Console:draw()
 		
 	--magic numbers here are padding
 	height = 1
-	wrap   = self.window.width - self.scrollbar.background.w - self.font.width - 4
-		
+	wrap   = self.keyboard.wrap_width_in_chars * self.font.width
+	
 	if #self.keyboard.output > 0 then
 		local visible_lines = {}
 		
-		love.graphics.setColor(self.color.font.to_love)
+		love.graphics.setColor(self.color.font.base.to_love)
 		
 		love.graphics.setFont(self.font.type)
 		
@@ -1163,15 +1194,21 @@ function Console:draw()
 	end
 	
 	--input text highlight
-	
-	
-	--input text
 	local input_width, input_line_breaks
 	
 	input_width       = self.font.type:getWidth(self.keyboard.input.data)
 	input_line_breaks = math.floor(input_width / wrap) + self.keyboard.input.line_breaks
+	ilb_in_pixels     = input_line_breaks * wrap
+	
+	if self.keyboard.highlight then
+		love.graphics.setColor(self.color.font[self.keyboard.highlight and "base" or "inverted"].to_love)
 		
-	love.graphics.setColor(self.color.font.to_love)
+		--Defintely did something wrong here. I don't know why the highlight shrinks 1/3 of font.width each newline
+		love.graphics.rectangle("fill", 2, self.window.height - self.font.height - 4, input_width - (input_line_breaks * (wrap - (self.font.width * .333))), self.font.height + 2)
+	end
+	
+	--input text		
+	love.graphics.setColor(self.color.font[self.keyboard.highlight and "inverted" or "base"].to_love)
 	
 	love.graphics.setFont(self.font.type)
 		
@@ -1179,9 +1216,17 @@ function Console:draw()
 	
 	--cursor
 	if self.cursor.showing then
-		love.graphics.setColor(self.color.font.to_love)
+		local x, y, cursor_pixel_pos, str_len
 		
-		love.graphics.rectangle("fill", self.keyboard.input.current_width + 3, self.window.height - (self.font.height / 2), self.font.width, self.font.height / 3)
+		cursor_pixel_pos = self.cursor.pos * self.font.width
+		str_len = self.keyboard.input.data:len() * self.font.width
+		
+		y = self.window.height - (self.font.height / 2)
+		x = cursor_pixel_pos - ilb_in_pixels + (math.ceil((str_len - cursor_pixel_pos) / (wrap + self.keyboard.input.current_width)) * wrap) + 2
+		
+		love.graphics.setColor(self.color.font.base.to_love)
+		
+		love.graphics.rectangle("fill", x, y, self.font.width, self.font.height / 4)
 	end
 end
 
@@ -1225,15 +1270,20 @@ end
 
 --Placed in the love.textinput function.
 function Console:textinput(k)
-	local increase = self.keyboard.input.current_width + self.font.width
+	local increase, text_len
 	
-	self.keyboard.input.data = self.keyboard.input.data .. k
-	self.keyboard.input.current_width = increase > self.window.width - self.scrollbar.background.w - self.font.width - 4 and self.font.width or increase
+	increase = self.keyboard.input.current_width + self.font.width
+	text_len = self.keyboard.input.data:len()
+	
+	self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
+	self.keyboard.input.current_width = increase >= self.keyboard.wrap_width_in_chars * self.font.width and 0 or increase
+	self.cursor.pos = self.cursor.pos + 1
 	self.cursor.timer = 0
+	self.cursor.showing = true
 end
 
 --Placed in the love.keypressed function.
-function Console:keyreleased(key, scancode)
+function Console:keypressed(key, scancode)
 	--Can't use return, it's a reserved keyword
 	key = key == "return" and "enter" or key
 	if #self.keyboard.mod == 1 then key = self.keyboard.mod[1] .. "_" .. key end
