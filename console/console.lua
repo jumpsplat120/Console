@@ -100,7 +100,7 @@ end
 
 -----CALLBACKS-----
 
-local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control, generalizedBorder
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
 
 function noPassthrough()
 	return true
@@ -512,9 +512,9 @@ control = {
 		self.cursor.timer = 0
 		self.cursor.showing = true
 	end,
-	enter = function(self)
+	enter = function(self, createLineObj)
 		local input = self.keyboard.input
-		self.keyboard.output[#self.keyboard.output + 1] = createLine(self, input.data)
+		self.keyboard.output[#self.keyboard.output + 1] = createLineObj(self, input.data)
 		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width, lb = input.line_breaks}
 		self.keyboard.input.data = ""
 		self.keyboard.input.current_width = 0
@@ -571,8 +571,9 @@ control = {
 }
 
 -----OTHER FUNCTIONS----- 
+local createLineObj, recalculateLineSize
 
-function createLine(self, line)
+function createLineObj(self, line)
 	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr, xtra_line_breaks
 	
 	res          = { height = 0, width = 0, text = {{1, 1, 1, 1}}}
@@ -584,7 +585,7 @@ function createLine(self, line)
 	
 	function add_chr(chr)
 		tmp_width = tmp_width + 1
-		if tmp_width > res.width then res.width = tmp_width end
+		res.width = res.width > tmp_width and tmp_width or res.width
 		parsed_text = parsed_text .. chr
 	end
 	
@@ -642,11 +643,83 @@ function createLine(self, line)
 	
 	res.width = res.width * self.font.width
 	
-	xtra_line_breaks = math.floor(res.width / (self.window.width - self.scrollbar.background.w - self.font.width - 4))
+	xtra_line_breaks = math.floor(res.width / (self.keyboard.wrap_width_in_chars * self.font.width))
 	
 	res.height = (res.height + 1 + xtra_line_breaks) * self.font.height
 	
 	return res
+end
+
+function recalculateLineSize(self, line)
+	local str = ""
+	
+	for i, tbl_or_str in ipairs(line.text) do
+		if not tbl_or_str[1] then str = str .. tbl_or_str end
+	end
+	
+	print("Full text: ", str)
+	
+	--[[
+	for chr in line:gmatch(".") do
+		if skip > 0 then
+		--skip over color codes
+			skip = skip - 1
+			parsed_index = parsed_index - 1
+		elseif chr == "\n" then
+		--Increase internal line height tracker
+			res.height = res.height + 1
+			if tmp_width > res.width then res.width = tmp_width end
+			tmp_width = 0
+			parsed_text = parsed_text .. chr
+		elseif chr == "c" then
+		--color code parsing
+			if line:sub(base_index + 1, base_index + 1) == "@" then
+				local r, g, b, a
+				
+				for val in line:sub(base_index + 2):gmatch("(%d%d?%d?)|") do
+					if not r then 
+						r = val 
+					elseif not g then 
+						g = val 
+					elseif not b then 
+						b = val 
+					elseif not a then 
+						a = val 
+					else
+						break
+					end
+				end
+				
+				if r and g and b and a then
+					-- the extra is the @, and the four dividers. We're already skipping c on this loop
+					skip = r:len() + g:len() + b:len() + a:len() + 5
+					res.text[#res.text + 1] = parsed_text
+					res.text[#res.text + 1] = { tonumber(r), tonumber(g), tonumber(b), tonumber(a) }
+					parsed_text = ""
+				else
+					add_chr(chr)
+				end
+			else
+				add_chr(chr)
+			end
+		else
+			add_chr(chr)
+		end
+		
+		base_index   = base_index   + 1
+		parsed_index = parsed_index + 1
+	end
+	
+	res.text[#res.text + 1] = parsed_text
+	
+	res.width = res.width * self.font.width
+	
+	xtra_line_breaks = math.floor(res.width / (self.keyboard.wrap_width_in_chars * self.font.width))
+	
+	res.height = (res.height + 1 + xtra_line_breaks) * self.font.height
+	
+	return res
+	]]--
 end
 
 -----CLASSES-----
@@ -1298,7 +1371,7 @@ function Console:resize(w, h)
 	self.window.titlebar.minimize:setDimensions(w - (button_width * 3), 0, button_width, tb_size)
 	self.window.titlebar.maximize:setDimensions(w - (button_width * 2), 0, button_width, tb_size)
 	self.window.titlebar.background:setDimensions(0, 0, w, titlebar_size)
-	self.scrollbar.bar:setDimensions(w - scrollbar_width, tb_size + scrollbar_height + self.scrollbar.bar.y, scrollbar_width, scrollbar_height)
+	self.scrollbar.bar:setDimensions(w - scrollbar_width, self.scrollbar.bar.y, scrollbar_width, scrollbar_height)
 	self.scrollbar.arrow_down:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, scrollbar_height)
 	self.scrollbar.arrow_up:setDimensions(w - scrollbar_width, h - scrollbar_height, scrollbar_width, scrollbar_height)
 	self.scrollbar.background:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, h)
@@ -1306,6 +1379,10 @@ function Console:resize(w, h)
 	self.scrollbar.max = h - tb_size - (self.scrollbar.arrow_up.h * 2)
 	
 	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
+	
+	self.keyboard.wrap_width_in_chars = math.floor((self.window.width - self.scrollbar.background.w - self.font.width - 4) / self.font.width)
+	
+	recalculateLineSize(self, self.keyboard.output[1])
 end
 
 --Placed in the love.textinput function.
@@ -1327,7 +1404,7 @@ function Console:keypressed(key, scancode)
 	--Can't use return, it's a reserved keyword
 	key = key == "return" and "enter" or key
 	if #self.keyboard.mod == 1 then key = self.keyboard.mod[1] .. "_" .. key end
-	if control[key] then control[key](self) end
+	if control[key] then control[key](self, createLineObj) end
 end
 
 --Placed in the love.wheelmoved function.
