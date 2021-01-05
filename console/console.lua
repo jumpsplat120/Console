@@ -861,6 +861,7 @@ function Console:new()
 		focus   = true,
 		display = 1,
 		scroll_offset = 0,
+		full_line_amount = 0,
 		titlebar = {
 			size       = titlebar_size,
 			text       = "Custom Console",
@@ -962,7 +963,9 @@ function Console:load(ctype)
 	self.window.titlebar.font = love.graphics.newFont(path .. "assets/ui.ttf", self.window.titlebar.size * .45)
 
 	self.window.x, self.window.y = love.window.getPosition()
-
+	
+	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
+	
 	self.mouse.system = {
 		pointer   = love.mouse.getSystemCursor("arrow"),
 		hand      = love.mouse.getSystemCursor("hand"),
@@ -1133,27 +1136,27 @@ function Console:draw()
 	love.graphics.origin()
 		
 	--output text
-	local height, wrap, visible_lines
+	local height, wrap
 		
 	--magic numbers here are padding
 	height = 1
 	wrap   = self.window.width - self.scrollbar.background.w - self.font.width - 4
 		
 	if #self.keyboard.output > 0 then
-		visible_lines = {}
+		local visible_lines = {}
 		
 		love.graphics.setColor(self.color.font.to_love)
 		
 		love.graphics.setFont(self.font.type)
 		
-		for i = #self.keyboard.output, self.window.scroll_offset + 1, -1 do
+		for i = self.window.scroll_offset + 1, constrain(1, self.window.scroll_offset + self.window.full_line_amount - 1, #self.keyboard.output), 1 do
 			visible_lines[#visible_lines + 1] = self.keyboard.output[i]
 			height = height + self.keyboard.output[i].height
 		end
-		
+
 		height = self.window.titlebar.size + 1
 		
-		for i = #visible_lines, 1, -1 do
+		for i = 1, #visible_lines, 1 do
 			love.graphics.printf(visible_lines[i].text, 2, math.floor(height + .5), wrap)
 			height = height + visible_lines[i].height
 		end
@@ -1216,6 +1219,8 @@ function Console:resize(w, h)
 	self.scrollbar.background:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, h)
 	
 	self.scrollbar.max = h - tb_size - (self.scrollbar.arrow_up.h * 2)
+	
+	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
 end
 
 --Placed in the love.textinput function.
