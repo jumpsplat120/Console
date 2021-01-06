@@ -100,7 +100,7 @@ end
 
 -----CALLBACKS-----
 
-local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarMath, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
 
 function noPassthrough()
 	return true
@@ -398,6 +398,7 @@ end
 
 function scrollbarBG(self, dt, mouse, args)
 	args[1].scrollbar.bar.y = mouse.loc.pos.y - (args[1].scrollbar.bar.h / 2)
+	args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, args[1].scrollbar.bar.y))
 	return "scrollbarHold"
 end
 
@@ -405,7 +406,7 @@ function scrollbarBar(self, dt, mouse, args)
 	if mouse.held then
 		if not self.mouse_offset then self.mouse_offset = self.y - mouse.loc.pos.y end
 		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.loc.pos.y + self.mouse_offset)
-
+		args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, self.y))
 		return "scrollbarHold"
 	else
 		self.mouse_offset = nil
@@ -414,13 +415,18 @@ function scrollbarBar(self, dt, mouse, args)
 	end
 end
 
+function scrollbarMath(self, console, adjust)
+	console.window.scroll_offset = constrain(0, console.keyboard.max_output, console.window.scroll_offset + adjust)
+	console.scrollbar.bar.y = round(map(0, console.keyboard.max_output, console.scrollbar.min, console.scrollbar.max, console.window.scroll_offset))
+end
+
 function scrollbarClickUp(self, dt, mouse, args)
-	print("Click up should affect line index, not the scrollbar.")
+	scrollbarMath(self, args[1], -1)
 	return true
 end
 
 function scrollbarClickDown(self, dt, mouse, args)
-	print("Click down should affect line index, not the scrollbar.")
+	scrollbarMath(self, args[1], 1)
 	return true
 end
 
@@ -430,7 +436,7 @@ function scrollbarHoldUp(self, dt, mouse, args)
 	
 	if self.timeout > .75 then
 		if mouse.held then
-			print("Holding up arrow should affect line index, not scrollbar offset.")
+			scrollbarMath(self, args[1], -1)
 		else
 			self.timeout = nil
 			return true
@@ -444,7 +450,7 @@ function scrollbarHoldDown(self, dt, mouse, args)
 	
 	if self.timeout > .75 then
 		if mouse.held then
-			print("Holding down arrow should affect line index, not scrollbar offset.")
+			scrollbarMath(self, args[1], 1)
 		else
 			self.timeout = nil
 			return true
@@ -988,8 +994,8 @@ function Console:new()
 	self.scrollbar = {
 		background = Rectangle(scrollbarBG, true, true, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
 		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, "scrollbarHold"}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
-		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
+		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
 	self.font = {
@@ -1057,7 +1063,7 @@ function Console:load(ctype)
 
 	self.window.x, self.window.y = love.window.getPosition()
 	
-	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
+	self.window.full_line_amount = round((self.window.height - self.window.titlebar.size) / self.font.height)
 	
 	self.keyboard.wrap_width_in_chars = math.floor((self.window.width - self.scrollbar.background.w - self.font.width - 4) / self.font.width)
 
@@ -1255,7 +1261,7 @@ function Console:draw()
 		height = self.window.titlebar.size + 1
 		
 		for i = 1, #visible_lines, 1 do
-			love.graphics.printf(visible_lines[i].text, 2, math.floor(height + .5), wrap)
+			love.graphics.printf(visible_lines[i].text, 2, round(height), wrap)
 			height = height + visible_lines[i].height
 		end
 	end
@@ -1339,7 +1345,7 @@ function Console:resize(w, h)
 	
 	self.scrollbar.max = h - tb_size - (self.scrollbar.arrow_up.h * 2)
 	
-	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
+	self.window.full_line_amount = round((self.window.height - self.window.titlebar.size) / self.font.height)
 	
 	self.window.last_resize = os.clock()
 	
