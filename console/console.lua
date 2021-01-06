@@ -574,9 +574,9 @@ control = {
 local createLineObj, recalculateLineSize
 
 function createLineObj(self, line)
-	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr, xtra_line_breaks
+	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr
 	
-	res          = { height = 0, width = 0, text = {{1, 1, 1, 1}}}
+	res          = { height = 0, width = 0, time = os.clock(), text = {{1, 1, 1, 1}}}
 	parsed_text  = ""
 	tmp_width    = 0
 	base_index   = 1
@@ -585,7 +585,7 @@ function createLineObj(self, line)
 	
 	function add_chr(chr)
 		tmp_width = tmp_width + 1
-		res.width = res.width > tmp_width and tmp_width or res.width
+		res.width = res.width < tmp_width and tmp_width or res.width
 		parsed_text = parsed_text .. chr
 	end
 	
@@ -597,8 +597,8 @@ function createLineObj(self, line)
 		elseif chr == "\n" then
 		--Increase internal line height tracker
 			res.height = res.height + 1
-			if tmp_width > res.width then res.width = tmp_width end
-			tmp_width = 0
+			res.width  = res.width < tmp_width and tmp_width or res.width
+			tmp_width  = 0
 			parsed_text = parsed_text .. chr
 		elseif chr == "c" then
 		--color code parsing
@@ -641,85 +641,42 @@ function createLineObj(self, line)
 	
 	res.text[#res.text + 1] = parsed_text
 	
-	res.width = res.width * self.font.width
-	
-	xtra_line_breaks = math.floor(res.width / (self.keyboard.wrap_width_in_chars * self.font.width))
-	
-	res.height = (res.height + 1 + xtra_line_breaks) * self.font.height
+	res.height = (res.height + math.floor(res.width / (self.keyboard.wrap_width_in_chars + 1)) + 1) * self.font.height
+	res.width  = res.width * self.font.width
 	
 	return res
 end
 
 function recalculateLineSize(self, line)
-	local str = ""
+	local str, tmp_width
+	
+	str       = ""
+	tmp_width = 0
 	
 	for i, tbl_or_str in ipairs(line.text) do
 		if not tbl_or_str[1] then str = str .. tbl_or_str end
 	end
 	
-	print("Full text: ", str)
+	line.height = 0
+	line.width  = 0
+	line.time   = os.clock()
 	
-	--[[
-	for chr in line:gmatch(".") do
-		if skip > 0 then
-		--skip over color codes
-			skip = skip - 1
-			parsed_index = parsed_index - 1
-		elseif chr == "\n" then
-		--Increase internal line height tracker
-			res.height = res.height + 1
-			if tmp_width > res.width then res.width = tmp_width end
-			tmp_width = 0
-			parsed_text = parsed_text .. chr
-		elseif chr == "c" then
-		--color code parsing
-			if line:sub(base_index + 1, base_index + 1) == "@" then
-				local r, g, b, a
-				
-				for val in line:sub(base_index + 2):gmatch("(%d%d?%d?)|") do
-					if not r then 
-						r = val 
-					elseif not g then 
-						g = val 
-					elseif not b then 
-						b = val 
-					elseif not a then 
-						a = val 
-					else
-						break
-					end
-				end
-				
-				if r and g and b and a then
-					-- the extra is the @, and the four dividers. We're already skipping c on this loop
-					skip = r:len() + g:len() + b:len() + a:len() + 5
-					res.text[#res.text + 1] = parsed_text
-					res.text[#res.text + 1] = { tonumber(r), tonumber(g), tonumber(b), tonumber(a) }
-					parsed_text = ""
-				else
-					add_chr(chr)
-				end
-			else
-				add_chr(chr)
-			end
+	for chr in str:gmatch(".") do
+		if chr == "\n" then
+			line.height = line.height + 1
+			tmp_width   = 0
 		else
-			add_chr(chr)
+			tmp_width = tmp_width + 1
+			line.width = line.width < tmp_width and tmp_width or line.width
 		end
-		
-		base_index   = base_index   + 1
-		parsed_index = parsed_index + 1
 	end
 	
-	res.text[#res.text + 1] = parsed_text
+	line.width = line.width < tmp_width and tmp_width or line.width
 	
-	res.width = res.width * self.font.width
+	line.height = (line.height + math.floor(line.width / (self.keyboard.wrap_width_in_chars + 1)) + 1) * self.font.height
+	line.width  = line.width * self.font.width
 	
-	xtra_line_breaks = math.floor(res.width / (self.keyboard.wrap_width_in_chars * self.font.width))
-	
-	res.height = (res.height + 1 + xtra_line_breaks) * self.font.height
-	
-	return res
-	]]--
+	return line
 end
 
 -----CLASSES-----
@@ -995,6 +952,7 @@ function Console:new()
 		display = 1,
 		scroll_offset = 0,
 		full_line_amount = 0,
+		last_resize = os.clock(),
 		titlebar = {
 			size       = titlebar_size,
 			text       = "Custom Console",
@@ -1287,6 +1245,9 @@ function Console:draw()
 		love.graphics.setFont(self.font.type)
 		
 		for i = self.window.scroll_offset + 1, constrain(1, self.window.scroll_offset + self.window.full_line_amount - 1, #self.keyboard.output), 1 do
+			if self.keyboard.output[i].time < self.window.last_resize then
+				self.keyboard.output[i] = recalculateLineSize(self, self.keyboard.output[i])
+			end
 			visible_lines[#visible_lines + 1] = self.keyboard.output[i]
 			height = height + self.keyboard.output[i].height
 		end
@@ -1380,9 +1341,9 @@ function Console:resize(w, h)
 	
 	self.window.full_line_amount = math.floor((self.window.height - self.window.titlebar.size) / self.font.height + .5)
 	
-	self.keyboard.wrap_width_in_chars = math.floor((self.window.width - self.scrollbar.background.w - self.font.width - 4) / self.font.width)
+	self.window.last_resize = os.clock()
 	
-	recalculateLineSize(self, self.keyboard.output[1])
+	self.keyboard.wrap_width_in_chars = math.floor((self.window.width - self.scrollbar.background.w - self.font.width - 4) / self.font.width)
 end
 
 --Placed in the love.textinput function.
