@@ -517,7 +517,6 @@ control = {
 			self.cursor.pos = 0
 		else
 			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
-			print(self.keyboard.input.data)
 			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
 			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
 		end
@@ -534,10 +533,12 @@ control = {
 		self.keyboard.input.line_breaks   = 0
 		self.cursor.pos = 0
 	end,
+	--well newlines just fuck everything, don't they
 	shift_enter = function(self) 
 		self.keyboard.input.data = self.keyboard.input.data .. "\n"
 		self.keyboard.input.line_breaks = self.keyboard.input.line_breaks + 1
 		self.keyboard.input.current_width = 0
+		self.cursor.pos = self.cursor.pos + self.font.width
 	end,
 	up = function(self)
 		local input, history_len
@@ -577,10 +578,16 @@ control = {
 		self.cursor.timer = 0
 		self.cursor.showing = true
 	end,
-	ctrl_c = function(self) print("Pressed control C!") end,
-	ctrl_v = function(self) print("Pressed control V!") end,
+	ctrl_c = function(self)
+		if self.keyboard.highlight then
+			love.system.setClipboardText(self.keyboard.input.data)
+		end
+	end,
+	ctrl_v = function(self)
+		--if self.
+	end,
 	ctrl_x = function(self) print("Pressed control X!") end,
-	ctrl_a = function(self) self.keyboard.highlight = not self.keyboard.highlight end
+	ctrl_a = function(self) self.keyboard.highlight = true end
 }
 
 -----OTHER FUNCTIONS----- 
@@ -1304,13 +1311,14 @@ function Console:draw()
 		x = cursor_pixel_pos - ilb_in_pixels + 2
 		y = self.window.height - (self.font.height / 2)
 		
+		print(cursor_pixel_pos)
 		if input_line_breaks > 0 and cursor_pixel_pos < ilb_in_pixels then
 			local lines_moved_up = math.ceil((str_len - cursor_pixel_pos) / (wrap + self.keyboard.input.current_width))
 
 			x = x + (lines_moved_up * wrap)
 			y = y - (lines_moved_up * self.font.height)
 		end
-		
+		print(x, y)
 		love.graphics.setColor(self.color.font[(self.keyboard.highlight and cursor_pixel_pos < str_len) and "inverted" or "base"].to_love)
 		
 		love.graphics.rectangle("fill", x, y, self.font.width, self.font.height / 4)
