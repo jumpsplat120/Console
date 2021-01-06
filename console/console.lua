@@ -50,13 +50,15 @@ Window  = require(path .. "bin/window_manipulation")
 
 -----DEFAULT VALUES-----
 
-local def_width, def_height, def_min_width, def_min_height, def_font_size, def_font_color, dark_theme_active, file, def_theme, titlebar_size, scrollbar_width, scrollbar_height
+local def_width, def_height, def_min_width, def_min_height, def_font_size, def_font_color, dark_theme_active, file, def_theme, titlebar_size, scrollbar_width, scrollbar_height, scroll_amt
 
 def_width  = 976
 def_height = 480
 def_min_width = 677
 def_min_height = 343
 def_font_size = 14
+
+--NOTE ALL THE COLORS ARE IN THE REGISTRY TOO IF I FEEL LIKE UPDATING THAT AT ANY POINT
 
 file = io.popen("reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme")
 
@@ -75,8 +77,13 @@ file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v Scro
 
 scrollbar_height = tonumber(file:read("*a"):match("-*%d+")) / -15
 
-file:close()
+file = io.popen('reg query "HKCU\\Control Panel\\Desktop" /v WheelScrollLines')
 
+--negative 1 means "one screen at a time" which means nothing on a console
+scroll_amt = tonumber(file:read("*a"):match("-*%d+"))
+scroll_amt = scroll_amt == -1 and 1 or scroll_amt
+
+file:close()
 
 -----BASIC FUNCTIONS-----
 
@@ -1376,7 +1383,8 @@ end
 
 --Placed in the love.wheelmoved function.
 function Console:wheelmoved(x, y)
-	self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + (y > 0 and -1 or (y < 0 and 1 or 0)))
+	self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + (y > 0 and -scroll_amt or (y < 0 and scroll_amt or 0)))
+	self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 end
 
 --Placed in the love.mousemoved function.
