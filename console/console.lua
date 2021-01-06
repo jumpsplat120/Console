@@ -533,12 +533,8 @@ control = {
 		self.keyboard.input.line_breaks   = 0
 		self.cursor.pos = 0
 	end,
-	--well newlines just fuck everything, don't they
 	shift_enter = function(self) 
-		self.keyboard.input.data = self.keyboard.input.data .. "\n"
-		self.keyboard.input.line_breaks = self.keyboard.input.line_breaks + 1
-		self.keyboard.input.current_width = 0
-		self.cursor.pos = self.cursor.pos + self.font.width
+
 	end,
 	up = function(self)
 		local input, history_len
