@@ -428,12 +428,12 @@ function scrollbarMath(self, console, adjust)
 end
 
 function scrollbarClickUp(self, dt, mouse, args)
-	scrollbarMath(self, args[1], -1)
+	scrollbarMath(self, args[1], 1)
 	return true
 end
 
 function scrollbarClickDown(self, dt, mouse, args)
-	scrollbarMath(self, args[1], 1)
+	scrollbarMath(self, args[1], -1)
 	return true
 end
 
@@ -443,7 +443,7 @@ function scrollbarHoldUp(self, dt, mouse, args)
 	
 	if self.timeout > .75 then
 		if mouse.held then
-			scrollbarMath(self, args[1], -1)
+			scrollbarMath(self, args[1], 1)
 		else
 			self.timeout = nil
 			return true
@@ -457,7 +457,7 @@ function scrollbarHoldDown(self, dt, mouse, args)
 	
 	if self.timeout > .75 then
 		if mouse.held then
-			scrollbarMath(self, args[1], 1)
+			scrollbarMath(self, args[1], -1)
 		else
 			self.timeout = nil
 			return true
@@ -1001,8 +1001,8 @@ function Console:new()
 	self.scrollbar = {
 		background = Rectangle(scrollbarBG, true, true, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.size, scrollbar_width, self.window.height, self.color.scrollbar.background.active.base, self.color.scrollbar.background.active.hover, self.color.scrollbar.background.active.click),
 		bar        = Rectangle(true, noPassthrough, scrollbarBar, {false, false, "scrollbarHold"}, self.window.width - scrollbar_width, self.window.titlebar.size + scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.bar.active.base, self.color.scrollbar.bar.active.hover, self.color.scrollbar.bar.active.click),
-		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
-		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
+		arrow_up   = Rectangle(scrollbarClickUp, noPassthrough, scrollbarHoldUp, {false, false, false}, self.window.width - scrollbar_width, self.window.height - scrollbar_height, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click),
+		arrow_down = Rectangle(scrollbarClickDown, noPassthrough, scrollbarHoldDown, {false, false, false}, self.window.width - scrollbar_width, self.window.titlebar.background.h, scrollbar_width, scrollbar_height, self.color.scrollbar.arrows_bg.active.base, self.color.scrollbar.arrows_bg.active.hover, self.color.scrollbar.arrows_bg.active.click)
 	}
 	
 	self.font = {
