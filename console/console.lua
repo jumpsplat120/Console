@@ -635,7 +635,15 @@ control = {
 			self.cursor.showing = true
 		end
 	end,
-	ctrl_x = function(self) print("Pressed control X!") end,
+	ctrl_x = function(self)
+		if self.keyboard.highlight then
+			love.system.setClipboardText(self.keyboard.input.data)
+			self.keyboard.input.data = ""
+			self.keyboard.input.current_width = 0
+			self.cursor.pos = 0
+			self.keyboard.highlight = false
+		end
+	end,
 	ctrl_a = function(self) self.keyboard.highlight = true end
 }
 
