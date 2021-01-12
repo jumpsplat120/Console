@@ -60,4 +60,8 @@ function Color:__tostring()
 	return "r: " .. self.r .. ", g: " .. self.g .. ", b: " .. self.b .. ", a: " .. self.a
 end
 
+function Color:__type()
+	return "Color"
+end
+
 return Color

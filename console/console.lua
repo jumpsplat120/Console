@@ -1,4 +1,4 @@
-local path, classic, inspect, Object, Color, Point, Rectangle, Console, Window
+local path, classic, inspect, Object, Color, Point, Rectangle, Line, Console, Window
 
 path = string.match(..., ".*/") or ""
 
@@ -6,6 +6,8 @@ inspect = require(path .. "third_party/inspect")
 Object  = require(path .. "third_party/classic")
 Mouse   = require(path .. "bin/global_mouse")
 Window  = require(path .. "bin/window_manipulation")
+
+require(path .. "bin/monkeypatch_type")
 
 --[[
 				   ____ ___  _   _ ____   ___  _     _____ 
@@ -89,6 +91,8 @@ file:close()
 
 local round, map, constrain, stringify, cycle
 
+do
+
 function round(val)
     return math.floor(val + .5)
 end
@@ -120,9 +124,16 @@ function stringify(val)
 	return type(val) == "table" and inspect(val) or tostring(val)
 end
 
+end
 -----CALLBACKS-----
 
-local noPassthrough, borderLeft, borderRight, borderTop, borderBot, borderTLeft, borderTRight, borderBLeft, borderBRight, scrollbarBG, scrollbarBar, scrollbarMath, scrollbarClickUp, scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar, exitButton, maxButton, minButton, control
+local noPassthrough, borderLeft, borderRight, borderTop, borderBot
+local borderTLeft, borderTRight, borderBLeft, borderBRight
+local scrollbarBG, scrollbarBar, scrollbarMath, scrollbarClickUp
+local scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar
+local exitButton, maxButton, minButton, control
+
+do
 
 function noPassthrough()
 	return true
@@ -543,15 +554,26 @@ control = {
 		local input, multiline
 		
 		input = self.keyboard.input
-		multiline = Line:new(self, input.data)
+		
+		multiline = Line(self, input.data)
 
-		for i, line in ipairs(multiline) do self.keyboard.output[#self.keyboard.output + 1] = line end
-
-		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width}
-		self.keyboard.input.data = ""
+		for i, line in ipairs(multiline) do
+			local res = self:submit(line)
+			
+			if res then
+				local output, res_type
+				
+				res_type = type(res)
+				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
+				self.keyboard.output[#self.keyboard.output + 1] = output
+				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+			end
+		end
+		
+		self.keyboard.input.data          = ""
 		self.keyboard.input.current_width = 0
-		self.keyboard.highlight = false
-		self.cursor.pos = 0
+		self.cursor.pos                   = 0
+		self.keyboard.highlight           = false
 	end,
 	shift_enter = function(self)
 	end,
@@ -604,9 +626,12 @@ control = {
 		if self.keyboard.highlight then
 			if paste:find("\n") then
 				for text in paste:gmatch("([^\n]*)\n") do
-					self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
-					multiline = Line:new(self, text)
-					self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+					text = self:submit(text)
+					if text then
+						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
+						multiline = Line(self, text)
+						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+					end
 				end
 				paste = paste:match("\n([^\n]*)$")
 			end
@@ -619,10 +644,13 @@ control = {
 			if paste:find("\n") then
 				for text in paste:gmatch("([^\n]*)\n") do
 					self.keyboard.input.data = self.keyboard.input.data ~= "" and (self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. text or self.keyboard.input.data:sub(1, self.cursor.pos) .. text .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())) or text
-					self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
-					multiline = Line:new(self, self.keyboard.input.data)
+					self.keyboard.input.data = self:submit(self.keyboard.input.data)
+					if self.keyboard.input.data then
+						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
+						multiline = Line(self, self.keyboard.input.data)
+						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+					end
 					self.keyboard.input.data = ""
-					self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
 				end
 				paste = paste:match("\n([^\n]*)$")
 				self.cursor.pos = 0
@@ -644,11 +672,12 @@ control = {
 			self.keyboard.highlight = false
 		end
 	end,
-	ctrl_a = function(self) self.keyboard.highlight = true end
+	ctrl_a = function(self)
+		self.keyboard.highlight = true
+	end
 }
 
------OTHER FUNCTIONS----- 
-
+end
 -----CLASSES-----
 
 Console = Object:extend()
@@ -1365,12 +1394,37 @@ function Console:mousemoved(x, y, dx, dy, istouch)
 	self.mouse.loc.dt:set(dx, dy)
 end
 
---Print plain white output to the console.
-function Console:print()
+		--====++CALLBACKS++====--
+	
+--Callback for when text is submitted. Any value that is returned will be displayed on the console.
+--If nothing is returned, no value will be displayed.
+function Console:submit(input)
+	return input
 end
 
---Print output to the console of a specified color, along with a timestamp.
-function Console:log()
+		--====++METHODS++====--
+
+--Print plain white output to the console.
+function Console:print(text)
+	local multiline = Line(self, text)
+
+	for i, line in ipairs(multiline) do
+		local res = self:submit(line)
+		
+		if res then
+			local output, res_type
+			
+			res_type = type(res)
+			output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
+
+			self.keyboard.output[#self.keyboard.output + 1] = output
+			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+		end
+	end
+end
+
+--Print output to the console with a timestamp, and a color for the timestamp.
+function Console:log(text, color)
 end
 
 --Clear the output of the console.

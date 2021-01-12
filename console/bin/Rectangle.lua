@@ -346,4 +346,8 @@ function Rectangle:__tostring()
 	return "x: " .. self.x .. ", y: " .. self.y .. ", w: " .. self.w .. ", h: " .. self.h
 end
 
+function Rectangle:__type()
+	return "Rectangle"
+end
+
 return Rectangle

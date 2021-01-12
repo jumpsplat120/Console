@@ -12,15 +12,17 @@ for i, level in ipairs(levels) do if i ~= #levels then path = path .. "/" .. lev
 
 local Object = require(path .. "/third_party/classic")
 
-local MultiLine
+local MultiLine, mt
 
 MultiLine = {}
+mt        = {}
 
-function MultiLine:__call(...)
-	local obj = setmetatable({}, self)
-	local ret_val = obj:new(...)
+function mt:__call(...)
+	local ret_val = self:new(...)
 	return ret_val
 end
+
+setmetatable(MultiLine, mt)
 
 function MultiLine:new(con, text)
 	local all_lines = self:parseText(con, {
@@ -97,6 +99,7 @@ SingleLine = Object:extend()
 
 function SingleLine:new(parsed_line)
 	self.meta = parsed_line
+	self.meta.len = self.str_text:len()
 end
 
 function SingleLine:get_time() return self.meta.time end
@@ -111,16 +114,34 @@ function SingleLine:get_str_text()
 	return str
 end
 
+function SingleLine:set_text(str)
+	local new_str = (type(str) == "string" and str or (type(str) == "Line" and str.str_text or stringify(str)))
+	
+	self.meta.text = { {1, 1, 1, 1}, new_str }
+	self.meta.len = new_str:len()
+end
+
+function SingleLine:clone()
+	return SingleLine({ height = self.height, time = self.time, text = self.text })
+end
+
 function SingleLine:print(x, y, wrap)
 	love.graphics.printf(self.formatted_text, x, y, wrap)
 end
 
 function SingleLine:recalculateSize(con)
 	self.time   = os.clock()
-	self.height = (math.floor(self.str_text:len() / (con.keyboard.wrap_width_in_chars + 1)) + 1) * con.font.height
+	self.height = (math.floor(self.meta.len / (con.keyboard.wrap_width_in_chars + 1)) + 1) * con.font.height
 end
 
+function SingleLine:len() return self.meta.len end
+
 function SingleLine:__tostring()
-	return self.str_text
+	return "L: " .. self.str_text
 end
+
+function SingleLine:__type()
+	return "Line"
+end
+
 return MultiLine

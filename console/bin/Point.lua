@@ -75,4 +75,8 @@ function Point:__eq(val)
 	return self.x == val.x and self.y == val.y
 end
 
+function Point:__type()
+	return "Point"
+end
+
 return Point
