@@ -675,6 +675,8 @@ control = {
 						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
 						multiline = Line(self, text)
 						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+						self.window.scroll_offset = self.window.scroll_offset + 1
+						self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 					end
 				end
 				paste = paste:match("\n([^\n]*)$")
@@ -682,6 +684,8 @@ control = {
 			
 			self.keyboard.input.data = paste
 			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
+			self.window.scroll_offset = self.window.scroll_offset + math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
+			self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			self.cursor.pos = self.keyboard.input.data:len()
 			self.keyboard.highlight = false
 		else
@@ -693,16 +697,21 @@ control = {
 						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
 						multiline = Line(self, self.keyboard.input.data)
 						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+						self.window.scroll_offset = self.window.scroll_offset + 1
+						self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 					end
 					self.keyboard.input.data = ""
 				end
 				paste = paste:match("\n([^\n]*)$")
 				self.cursor.pos = 0
 			end
-		
+			
+			local cur_height = math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
 			self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. paste or self.keyboard.input.data:sub(1, self.cursor.pos) .. paste .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
 			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
 			self.cursor.pos = self.cursor.pos + paste:len()
+			self.window.scroll_offset = self.window.scroll_offset + (math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars) - cur_height)
+			self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			self.cursor.timer = 0
 			self.cursor.showing = true
 		end
