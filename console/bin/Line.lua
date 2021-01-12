@@ -51,7 +51,7 @@ function MultiLine:parseText(con, line, text)
 			line.text[#line.text + 1] = parsed_text
 			
 			all_lines[#all_lines + 1] = { 
-				height = (math.floor(line.width / (con.keyboard.wrap_width_in_chars + 1)) + 1) * con.font.height,
+				height = (math.floor(width / (con.keyboard.wrap_width_in_chars + 1)) + 1) * con.font.height,
 				text   = line.text,
 				time   = line.time
 			}
@@ -120,4 +120,7 @@ function SingleLine:recalculateSize(con)
 	self.height = (math.floor(self.str_text:len() / (con.keyboard.wrap_width_in_chars + 1)) + 1) * con.font.height
 end
 
+function SingleLine:__tostring()
+	return self.str_text
+end
 return MultiLine

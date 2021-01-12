@@ -103,12 +103,11 @@ end
 
 function cycle(min, max, val)
 	local res
-	
 	if val < min or val > max then
 		local is_more, dt1, dt2
-		is_more = input > max
-		dt1 = max - min + 1
-		dt2 = math.ceil(math.abs((val - (is_more and max or min)) / dt1) - .5) * dt1
+		is_more = val > max
+		dt1 = max - min
+		dt2 = math.ceil(math.abs((val - (is_more and max or min)) / dt1)) * dt1
 		res = is_more and (val - dt2) or (val + dt2)
 	else
 		res = val
@@ -588,13 +587,11 @@ control = {
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
 		self.cursor.timer = 0
 		self.cursor.showing = true
-		self.keyboard.highlight = false
 	end,
 	right = function(self)
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
 		self.cursor.timer = 0
 		self.cursor.showing = true
-		self.keyboard.highlight = false
 	end,
 	ctrl_c = function(self)
 		if self.keyboard.highlight then
@@ -602,15 +599,40 @@ control = {
 		end
 	end,
 	ctrl_v = function(self)
+		local paste = love.system.getClipboardText()
+		
 		if self.keyboard.highlight then
-			self.keyboard.input.data = love.system.getClipboardText():gsub("\n", "")
+			if paste:find("\n") then
+				for text in paste:gmatch("([^\n]*)\n") do
+					self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
+					multiline = Line:new(self, text)
+					self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+				end
+				paste = paste:match("\n([^\n]*)$")
+			end
 			
-			local a = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())
-			print(a)
-			self.keyboard.input.current_width = a
+			self.keyboard.input.data = paste
+			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
 			self.cursor.pos = self.keyboard.input.data:len()
 			self.keyboard.highlight = false
 		else
+			if paste:find("\n") then
+				for text in paste:gmatch("([^\n]*)\n") do
+					self.keyboard.input.data = self.keyboard.input.data ~= "" and (self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. text or self.keyboard.input.data:sub(1, self.cursor.pos) .. text .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())) or text
+					self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
+					multiline = Line:new(self, self.keyboard.input.data)
+					self.keyboard.input.data = ""
+					self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+				end
+				paste = paste:match("\n([^\n]*)$")
+				self.cursor.pos = 0
+			end
+		
+			self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. paste or self.keyboard.input.data:sub(1, self.cursor.pos) .. paste .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
+			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
+			self.cursor.pos = self.cursor.pos + paste:len()
+			self.cursor.timer = 0
+			self.cursor.showing = true
 		end
 	end,
 	ctrl_x = function(self) print("Pressed control X!") end,
@@ -1206,15 +1228,23 @@ function Console:draw()
 	--input text highlight
 	local input_width, input_line_breaks
 	
-	input_width       = self.font.type:getWidth(self.keyboard.input.data)
-	input_line_breaks = math.floor(input_width / wrap)
+	input_line_breaks = math.floor(self.font.type:getWidth(self.keyboard.input.data) / wrap)
 	ilb_in_pixels     = input_line_breaks * wrap
 	
 	if self.keyboard.highlight then
+		local x, y, h
+		
+		x = 2
+		y = self.window.height - self.font.height - 4
+		h = self.font.height + 2
+		
 		love.graphics.setColor(self.color.font[self.keyboard.highlight and "base" or "inverted"].to_love)
 		
-		--Defintely did something wrong here. I don't know why the highlight shrinks 1/3 of font.width each newline
-		love.graphics.rectangle("fill", 2, self.window.height - self.font.height - 4, input_width - (input_line_breaks * (wrap - (self.font.width * .333))), self.font.height + 2)
+		love.graphics.rectangle("fill", x, y, self.keyboard.input.current_width, h)
+		
+		for i = 1, input_line_breaks, 1 do
+			love.graphics.rectangle("fill", x, y - (i * self.font.height), wrap, h)
+		end
 	end
 	
 	--input text		
@@ -1298,14 +1328,9 @@ function Console:textinput(k)
 		self.timer = 0
 		self.cursor.showing = true
 		self.keyboard.highlight = false
-	else
-		local increase, text_len
-		
-		increase = self.keyboard.input.current_width + self.font.width
-		text_len = self.keyboard.input.data:len()
-		
-		self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
-		self.keyboard.input.current_width = increase >= self.keyboard.wrap_width_in_chars * self.font.width and 0 or increase
+	else	
+		self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
+		self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
 		self.cursor.pos = self.cursor.pos + 1
 		self.cursor.timer = 0
 		self.cursor.showing = true
