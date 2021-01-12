@@ -537,6 +537,7 @@ control = {
 		decrease = self.keyboard.input.current_width - self.font.width
 		
 		if self.keyboard.highlight then
+			self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars))
 			self.keyboard.input.data = ""
 			self.keyboard.input.current_width = 0
 			self.cursor.pos = 0
@@ -545,6 +546,7 @@ control = {
 			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
 			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
 			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
+			self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - ((self.keyboard.input.current_width == (self.keyboard.wrap_width_in_chars - 1) * self.font.width) and 1 or 0))
 		end
 		
 		self.cursor.timer = 0
@@ -567,6 +569,8 @@ control = {
 				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
 				self.keyboard.output[#self.keyboard.output + 1] = output
 				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
+				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			end
 		end
 		
@@ -1359,6 +1363,7 @@ end
 --Placed in the love.textinput function.
 function Console:textinput(k)
 	if self.keyboard.highlight then
+		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars))
 		self.keyboard.input.data = k
 		self.keyboard.input.current_width = 1
 		self.cursor.pos = 1
@@ -1368,6 +1373,7 @@ function Console:textinput(k)
 	else	
 		self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
 		self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
+		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + ((self.keyboard.input.current_width == self.keyboard.wrap_width_in_chars * self.font.width) and 1 or 0))
 		self.cursor.pos = self.cursor.pos + 1
 		self.cursor.timer = 0
 		self.cursor.showing = true
@@ -1419,6 +1425,10 @@ function Console:print(text)
 
 			self.keyboard.output[#self.keyboard.output + 1] = output
 			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+			if self.keyboard.input.data == "" then
+				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
+				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+			end
 		end
 	end
 end
