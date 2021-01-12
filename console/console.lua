@@ -592,7 +592,7 @@ control = {
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
 			self.keyboard.highlight           = false
-			self.cursor.pos                   = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+			self.cursor.pos                   = self.keyboard.input.data:len()
 		end
 	end,
 	down = function(self) 
@@ -618,6 +618,46 @@ control = {
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
 		self.cursor.timer = 0
 		self.cursor.showing = true
+	end,
+	shift_left = function(self)
+		self.cursor.pos = 0
+		self.cursor.timer = 0
+		self.cursor.showing = true
+		self.keyboard.highlight = false
+	end,
+	shift_right = function(self)
+		self.cursor.pos = self.keyboard.input.data:len()
+		self.cursor.timer = 0
+		self.cursor.showing = true
+		self.keyboard.highlight = false
+	end,
+	shift_up = function(self)
+		local input, history_len
+		
+		input       = self.keyboard.input
+		history_len = #input.history
+		
+		if history_len > 0 then
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 10)
+			self.keyboard.input.data          = input.history[input.history_index].data
+			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.highlight           = false
+			self.cursor.pos                   = self.keyboard.input.data:len()
+		end
+	end,
+	shift_down = function(self)
+		local input, history_len
+		
+		input       = self.keyboard.input
+		history_len = #input.history
+		
+		if history_len > 0 then
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 10)
+			self.keyboard.input.data          = input.history[input.history_index].data
+			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.highlight           = false
+			self.cursor.pos                   = self.keyboard.input.data:len()
+		end 
 	end,
 	ctrl_c = function(self)
 		if self.keyboard.highlight then
