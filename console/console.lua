@@ -513,7 +513,6 @@ control = {
 		if self.keyboard.highlight then
 			self.keyboard.input.data = ""
 			self.keyboard.input.current_width = 0
-			self.keyboard.input.line_breaks   = 0
 			self.cursor.pos = 0
 		else
 			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
@@ -525,16 +524,19 @@ control = {
 		self.cursor.showing = true
 	end,
 	enter = function(self, createLineObj)
-		local input = self.keyboard.input
-		self.keyboard.output[#self.keyboard.output + 1] = createLineObj(self, input.data)
-		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width, lb = input.line_breaks}
+		local input, multiline
+		
+		input = self.keyboard.input
+		multiline = Line:new(self, input.data)
+
+		for i, line in ipairs(multiline) do self.keyboard.output[#self.keyboard.output + 1] = line end
+
+		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width}
 		self.keyboard.input.data = ""
 		self.keyboard.input.current_width = 0
-		self.keyboard.input.line_breaks   = 0
 		self.cursor.pos = 0
 	end,
-	shift_enter = function(self) 
-
+	shift_enter = function(self)
 	end,
 	up = function(self)
 		local input, history_len
@@ -543,11 +545,10 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-		self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
-		self.keyboard.input.data          = input.history[input.history_index].data
-		self.keyboard.input.current_width = input.history[input.history_index].cur_width
-		self.keyboard.input.line_breaks   = input.history[input.history_index].lb
-		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
+			self.keyboard.input.data          = input.history[input.history_index].data
+			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
 		end
 	end,
 	down = function(self) 
@@ -557,11 +558,11 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-		self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
-		self.keyboard.input.data          = input.history[input.history_index].data
-		self.keyboard.input.current_width = input.history[input.history_index].cur_width
-		self.keyboard.input.line_breaks   = input.history[input.history_index].lb
-		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
+			self.keyboard.input.data          = input.history[input.history_index].data
+			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.highlight           = false
+			self.cursor.pos                   = self.keyboard.input.data:len()
 		end 
 	end,
 	left = function(self)
@@ -580,120 +581,18 @@ control = {
 		end
 	end,
 	ctrl_v = function(self)
-		--if self.
+		if self.keyboard.highlight then
+			self.keyboard.input.data = love.system.getClipboardText():gsub("\n", "")
+			self.keyboard.input.current_width = recalculateLineSize(self, {height = 0, width = 0, text = {{1,1,1,1}, self.keyboard.input.data}})
+			self.cursor.pos = self.keyboard.input.data:len()
+		else
+		end
 	end,
 	ctrl_x = function(self) print("Pressed control X!") end,
 	ctrl_a = function(self) self.keyboard.highlight = true end
 }
 
 -----OTHER FUNCTIONS----- 
-local createLineObj, recalculateLineSize
-
-function createLineObj(self, line)
-	local res, parsed_text, tmp_width, base_index, parsed_index, add_chr
-	
-	res          = { height = 0, width = 0, time = os.clock(), text = {{1, 1, 1, 1}}}
-	parsed_text  = ""
-	tmp_width    = 0
-	base_index   = 1
-	parsed_index = 1
-	skip         = 0
-	
-	function add_chr(chr)
-		tmp_width = tmp_width + 1
-		res.width = res.width < tmp_width and tmp_width or res.width
-		parsed_text = parsed_text .. chr
-	end
-	
-	for chr in line:gmatch(".") do
-		if skip > 0 then
-		--skip over color codes
-			skip = skip - 1
-			parsed_index = parsed_index - 1
-		elseif chr == "\n" then
-		--Increase internal line height tracker
-			res.height = res.height + 1
-			res.width  = res.width < tmp_width and tmp_width or res.width
-			tmp_width  = 0
-			parsed_text = parsed_text .. chr
-		elseif chr == "c" then
-		--color code parsing
-			if line:sub(base_index + 1, base_index + 1) == "@" then
-				local r, g, b, a
-				
-				for val in line:sub(base_index + 2):gmatch("(%d%d?%d?)|") do
-					if not r then 
-						r = val 
-					elseif not g then 
-						g = val 
-					elseif not b then 
-						b = val 
-					elseif not a then 
-						a = val 
-					else
-						break
-					end
-				end
-				
-				if r and g and b and a then
-					-- the extra is the @, and the four dividers. We're already skipping c on this loop
-					skip = r:len() + g:len() + b:len() + a:len() + 5
-					res.text[#res.text + 1] = parsed_text
-					res.text[#res.text + 1] = { tonumber(r), tonumber(g), tonumber(b), tonumber(a) }
-					parsed_text = ""
-				else
-					add_chr(chr)
-				end
-			else
-				add_chr(chr)
-			end
-		else
-			add_chr(chr)
-		end
-		
-		base_index   = base_index   + 1
-		parsed_index = parsed_index + 1
-	end
-	
-	res.text[#res.text + 1] = parsed_text
-	
-	res.height = (res.height + math.floor(res.width / (self.keyboard.wrap_width_in_chars + 1)) + 1) * self.font.height
-	res.width  = res.width * self.font.width
-	
-	return res
-end
-
-function recalculateLineSize(self, line)
-	local str, tmp_width
-	
-	str       = ""
-	tmp_width = 0
-	
-	for i, tbl_or_str in ipairs(line.text) do
-		if not tbl_or_str[1] then str = str .. tbl_or_str end
-	end
-	
-	line.height = 0
-	line.width  = 0
-	line.time   = os.clock()
-	
-	for chr in str:gmatch(".") do
-		if chr == "\n" then
-			line.height = line.height + 1
-			tmp_width   = 0
-		else
-			tmp_width = tmp_width + 1
-			line.width = line.width < tmp_width and tmp_width or line.width
-		end
-	end
-	
-	line.width = line.width < tmp_width and tmp_width or line.width
-	
-	line.height = (line.height + math.floor(line.width / (self.keyboard.wrap_width_in_chars + 1)) + 1) * self.font.height
-	line.width  = line.width * self.font.width
-	
-	return line
-end
 
 -----CLASSES-----
 
@@ -944,6 +843,10 @@ Point = require(path .. "bin/Point")
 
 Rectangle = require(path .. "bin/Rectangle")
 
+	--=======RECTANGLE=======--
+
+Line = require(path .. "bin/Line")
+
 	--========CONSOLE========--
 	
 --Called once on load. Used for non-love based loading.
@@ -1016,7 +919,6 @@ function Console:new()
 		mod = {},
 		input = {
 			data = "",
-			line_breaks = 0,
 			current_width = 0,
 			wrap_width_in_chars = 0,
 			history_index = 0,
@@ -1261,9 +1163,9 @@ function Console:draw()
 		love.graphics.setFont(self.font.type)
 		
 		for i = self.window.scroll_offset + 1, constrain(1, self.window.scroll_offset + self.window.full_line_amount - 1, #self.keyboard.output), 1 do
-			if self.keyboard.output[i].time < self.window.last_resize then
-				self.keyboard.output[i] = recalculateLineSize(self, self.keyboard.output[i])
-			end
+		
+			if self.keyboard.output[i].time < self.window.last_resize then self.keyboard.output[i]:recalculateSize(self) end
+			
 			visible_lines[#visible_lines + 1] = self.keyboard.output[i]
 			height = height + self.keyboard.output[i].height
 		end
@@ -1271,7 +1173,7 @@ function Console:draw()
 		height = self.window.titlebar.size + 1
 		
 		for i = 1, #visible_lines, 1 do
-			love.graphics.printf(visible_lines[i].text, 2, round(height), wrap)
+			visible_lines[i]:print(2, round(height), wrap)
 			height = height + visible_lines[i].height
 		end
 	end
@@ -1280,7 +1182,7 @@ function Console:draw()
 	local input_width, input_line_breaks
 	
 	input_width       = self.font.type:getWidth(self.keyboard.input.data)
-	input_line_breaks = math.floor(input_width / wrap) + self.keyboard.input.line_breaks
+	input_line_breaks = math.floor(input_width / wrap)
 	ilb_in_pixels     = input_line_breaks * wrap
 	
 	if self.keyboard.highlight then
@@ -1307,14 +1209,13 @@ function Console:draw()
 		x = cursor_pixel_pos - ilb_in_pixels + 2
 		y = self.window.height - (self.font.height / 2)
 		
-		print(cursor_pixel_pos)
 		if input_line_breaks > 0 and cursor_pixel_pos < ilb_in_pixels then
 			local lines_moved_up = math.ceil((str_len - cursor_pixel_pos) / (wrap + self.keyboard.input.current_width))
 
 			x = x + (lines_moved_up * wrap)
 			y = y - (lines_moved_up * self.font.height)
 		end
-		print(x, y)
+
 		love.graphics.setColor(self.color.font[(self.keyboard.highlight and cursor_pixel_pos < str_len) and "inverted" or "base"].to_love)
 		
 		love.graphics.rectangle("fill", x, y, self.font.width, self.font.height / 4)

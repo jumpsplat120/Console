@@ -12,7 +12,7 @@ for i, level in ipairs(levels) do if i ~= #levels then path = path .. "/" .. lev
 
 local Object = require(path .. "/third_party/classic")
 
-Rectangle = Object:extend()
+local Rectangle = Object:extend()
 
 -- x, y, w, h and base_color are required, but do have defaults. hover and click can take a color or 'true'. Passing true
 -- is basically saying that this rectangle doesn't have different colors for hovering or clicking. If attempting to access
