@@ -87,7 +87,7 @@ file:close()
 
 -----BASIC FUNCTIONS-----
 
-local round, map, constrain, stringify
+local round, map, constrain, stringify, cycle
 
 function round(val)
     return math.floor(val + .5)
@@ -99,6 +99,22 @@ end
 
 function constrain(min, max, val)
 	return (val < min and min) or (val > max and max) or val
+end
+
+function cycle(min, max, val)
+	local res
+	
+	if val < min or val > max then
+		local is_more, dt1, dt2
+		is_more = input > max
+		dt1 = max - min + 1
+		dt2 = math.ceil(math.abs((val - (is_more and max or min)) / dt1) - .5) * dt1
+		res = is_more and (val - dt2) or (val + dt2)
+	else
+		res = val
+	end
+	
+	return res
 end
 
 function stringify(val)
@@ -514,6 +530,7 @@ control = {
 			self.keyboard.input.data = ""
 			self.keyboard.input.current_width = 0
 			self.cursor.pos = 0
+			self.keyboard.highlight = false
 		else
 			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
 			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
@@ -523,7 +540,7 @@ control = {
 		self.cursor.timer = 0
 		self.cursor.showing = true
 	end,
-	enter = function(self, createLineObj)
+	enter = function(self)
 		local input, multiline
 		
 		input = self.keyboard.input
@@ -534,6 +551,7 @@ control = {
 		self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = input.current_width}
 		self.keyboard.input.data = ""
 		self.keyboard.input.current_width = 0
+		self.keyboard.highlight = false
 		self.cursor.pos = 0
 	end,
 	shift_enter = function(self)
@@ -548,7 +566,8 @@ control = {
 			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
-			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
+			self.keyboard.highlight           = false
+			self.cursor.pos                   = constrain(0, self.keyboard.input.data:len(), self.cursor.pos)
 		end
 	end,
 	down = function(self) 
@@ -569,11 +588,13 @@ control = {
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
 		self.cursor.timer = 0
 		self.cursor.showing = true
+		self.keyboard.highlight = false
 	end,
 	right = function(self)
 		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
 		self.cursor.timer = 0
 		self.cursor.showing = true
+		self.keyboard.highlight = false
 	end,
 	ctrl_c = function(self)
 		if self.keyboard.highlight then
@@ -583,8 +604,12 @@ control = {
 	ctrl_v = function(self)
 		if self.keyboard.highlight then
 			self.keyboard.input.data = love.system.getClipboardText():gsub("\n", "")
-			self.keyboard.input.current_width = recalculateLineSize(self, {height = 0, width = 0, text = {{1,1,1,1}, self.keyboard.input.data}})
+			
+			local a = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())
+			print(a)
+			self.keyboard.input.current_width = a
 			self.cursor.pos = self.keyboard.input.data:len()
+			self.keyboard.highlight = false
 		else
 		end
 	end,
@@ -1266,16 +1291,25 @@ end
 
 --Placed in the love.textinput function.
 function Console:textinput(k)
-	local increase, text_len
-	
-	increase = self.keyboard.input.current_width + self.font.width
-	text_len = self.keyboard.input.data:len()
-	
-	self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
-	self.keyboard.input.current_width = increase >= self.keyboard.wrap_width_in_chars * self.font.width and 0 or increase
-	self.cursor.pos = self.cursor.pos + 1
-	self.cursor.timer = 0
-	self.cursor.showing = true
+	if self.keyboard.highlight then
+		self.keyboard.input.data = k
+		self.keyboard.input.current_width = 1
+		self.cursor.pos = 1
+		self.timer = 0
+		self.cursor.showing = true
+		self.keyboard.highlight = false
+	else
+		local increase, text_len
+		
+		increase = self.keyboard.input.current_width + self.font.width
+		text_len = self.keyboard.input.data:len()
+		
+		self.keyboard.input.data = self.cursor.pos == text_len and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, text_len)
+		self.keyboard.input.current_width = increase >= self.keyboard.wrap_width_in_chars * self.font.width and 0 or increase
+		self.cursor.pos = self.cursor.pos + 1
+		self.cursor.timer = 0
+		self.cursor.showing = true
+	end
 end
 
 --Placed in the love.keypressed function.
@@ -1283,7 +1317,7 @@ function Console:keypressed(key, scancode)
 	--Can't use return, it's a reserved keyword
 	key = key == "return" and "enter" or key
 	if #self.keyboard.mod == 1 then key = self.keyboard.mod[1] .. "_" .. key end
-	if control[key] then control[key](self, createLineObj) end
+	if control[key] then control[key](self) end
 end
 
 --Placed in the love.wheelmoved function.
