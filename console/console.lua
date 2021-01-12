@@ -569,8 +569,11 @@ control = {
 				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
 				self.keyboard.output[#self.keyboard.output + 1] = output
 				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
-				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
-				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+				
+				if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
+					self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
+					self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+				end
 			end
 		end
 		
@@ -1461,7 +1464,7 @@ end
 
 --Print plain white output to the console.
 function Console:print(text)
-	local multiline = Line(self, text)
+	local multiline = Line(self, tostring(text))
 
 	for i, line in ipairs(multiline) do
 		local res = self:submit(line)
@@ -1474,7 +1477,7 @@ function Console:print(text)
 
 			self.keyboard.output[#self.keyboard.output + 1] = output
 			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
-			if self.keyboard.input.data == "" then
+			if self.keyboard.input.data == "" and #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
 				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
 				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			end
