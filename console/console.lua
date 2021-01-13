@@ -61,7 +61,7 @@ def_min_height = 343
 def_font_size = 14
 
 --NOTE ALL THE COLORS ARE IN THE REGISTRY TOO IF I FEEL LIKE UPDATING THAT AT ANY POINT
-
+--The flicker is due to how I'm getting registry entries, which also we don't want to do if the os isn't windows
 file = io.popen("reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme")
 
 dark_theme_active = tonumber(file:read("*a"):match("%dx(%d)")) == 0
@@ -437,8 +437,8 @@ end
 
 function scrollbarBar(self, dt, mouse, args)	
 	if mouse.held then
-		if not self.mouse_offset then self.mouse_offset = self.y - mouse.loc.pos.y end
-		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.loc.pos.y + self.mouse_offset)
+		if not self.mouse_offset then self.mouse_offset = self.y - mouse.global.pos.y end
+		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.global.pos.y + self.mouse_offset)
 		args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, self.y))
 		return "scrollbarHold"
 	else
@@ -558,7 +558,7 @@ control = {
 		local input, multiline
 		
 		input = self.keyboard.input
-		
+
 		multiline = Line(self, input.data)
 
 		for i, line in ipairs(multiline) do
@@ -571,8 +571,8 @@ control = {
 				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
 				if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
 				self.keyboard.output[#self.keyboard.output + 1] = output
-				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
-				
+				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+				self.keyboard.input.history_index = self.keyboard.input.history_index + 1
 				if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
 					self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
 					self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
@@ -594,9 +594,9 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
 			self.keyboard.highlight           = false
 			self.cursor.pos                   = self.keyboard.input.data:len()
 		end
@@ -608,9 +608,9 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
 			self.keyboard.highlight           = false
 			self.cursor.pos                   = self.keyboard.input.data:len()
 		end 
@@ -644,9 +644,9 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 10)
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 10)
 			self.keyboard.highlight           = false
 			self.cursor.pos                   = self.keyboard.input.data:len()
 		end
@@ -658,9 +658,9 @@ control = {
 		history_len = #input.history
 		
 		if history_len > 0 then
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 10)
 			self.keyboard.input.data          = input.history[input.history_index].data
 			self.keyboard.input.current_width = input.history[input.history_index].cur_width
+			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 10)
 			self.keyboard.highlight           = false
 			self.cursor.pos                   = self.keyboard.input.data:len()
 		end 
@@ -679,6 +679,7 @@ control = {
 					text = self:submit(text)
 					if text then
 						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
+						self.keyboard.input.history_index = self.keyboard.input.history_index + 1
 						multiline = Line(self, text)
 						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
 						self.window.scroll_offset = self.window.scroll_offset + 1
@@ -701,6 +702,7 @@ control = {
 					self.keyboard.input.data = self:submit(self.keyboard.input.data)
 					if self.keyboard.input.data then
 						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
+						self.keyboard.input.history_index = self.keyboard.input.history_index + 1
 						multiline = Line(self, self.keyboard.input.data)
 						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
 						self.window.scroll_offset = self.window.scroll_offset + 1
@@ -1512,7 +1514,7 @@ function Console:print(...)
 			output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
 			if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
 			self.keyboard.output[#self.keyboard.output + 1] = output
-			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
 			if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
 				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
 				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
