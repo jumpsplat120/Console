@@ -1321,7 +1321,7 @@ function Console:draw()
 	--input text highlight
 	local input_width, input_line_breaks
 	
-	input_line_breaks = math.floor(self.font.type:getWidth(self.keyboard.input.data) / wrap)
+	input_line_breaks = math.floor(self.keyboard.input.data:len() * self.font.width / wrap)
 	ilb_in_pixels     = input_line_breaks * wrap
 	
 	if self.keyboard.highlight then
@@ -1344,8 +1344,17 @@ function Console:draw()
 	love.graphics.setColor(self.color.font[self.keyboard.highlight and "inverted" or "base"].to_love)
 	
 	love.graphics.setFont(self.font.type)
+	
+	if self.keyboard.input.data:len() > self.keyboard.wrap_width_in_chars - 1 then
+		local mod_str = ""
 		
-	love.graphics.printf(self.keyboard.input.data, 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height), wrap)
+		for i = 0, self.keyboard.input.data:len(), self.keyboard.wrap_width_in_chars do
+			mod_str = mod_str .. self.keyboard.input.data:sub(i + 1, constrain(1, self.keyboard.input.data:len(), i + self.keyboard.wrap_width_in_chars)) .. "\n"
+		end
+		love.graphics.print(mod_str:sub(1, -2), 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height))
+	else
+		love.graphics.printf(self.keyboard.input.data, 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height), wrap)
+	end
 	
 	--cursor
 	if self.cursor.showing then
@@ -1414,22 +1423,27 @@ end
 
 --Placed in the love.textinput function.
 function Console:textinput(k)
+	local text, text_len, wwinc
+	
+	wwinc    = self.keyboard.wrap_width_in_chars
+	text     = self.keyboard.input.data
+	text_len = text:len()
+	
 	if self.keyboard.highlight then
-		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars))
+		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(text_len / wwinc))
 		self.keyboard.input.data = k
 		self.keyboard.input.current_width = 1
 		self.cursor.pos = 1
-		self.timer = 0
-		self.cursor.showing = true
 		self.keyboard.highlight = false
 	else	
-		self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. k or self.keyboard.input.data:sub(1, self.cursor.pos) .. k .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
-		self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
-		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + ((self.keyboard.input.current_width == self.keyboard.wrap_width_in_chars * self.font.width) and 1 or 0))
+		self.keyboard.input.data = self.cursor.pos == text_len and text .. k or text:sub(1, self.cursor.pos) .. k .. text:sub(self.cursor.pos + 1, text_len)
+		self.keyboard.input.current_width = cycle(0, wwinc, self.keyboard.input.data:len()) * self.font.width
+		self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + ((self.keyboard.input.current_width == wwinc * self.font.width) and 1 or 0))
 		self.cursor.pos = self.cursor.pos + 1
-		self.cursor.timer = 0
-		self.cursor.showing = true
 	end
+	
+	self.cursor.timer = 0
+	self.cursor.showing = true
 end
 
 --Placed in the love.keypressed function.
