@@ -8,7 +8,7 @@ Mouse   = require(path .. "bin/global_mouse")
 Window  = require(path .. "bin/window_manipulation")
 
 require(path .. "bin/monkeypatch_type")
-
+require(path .. "bin/polyfill_table")
 --[[
 				   ____ ___  _   _ ____   ___  _     _____ 
 				  / ___/ _ \| \ | / ___| / _ \| |   | ____|
@@ -512,18 +512,20 @@ function exitButton(self, dt, mouse, args)
 end
 
 function maxButton(self, dt, mouse, args)
-	if love.window.isMaximized() then 
-		print("Unmaximizing!")
-		love.window.restore() 
+	if love.window.getFullscreen() then 
+		love.window.setFullscreen(false)
+		c:resize(args[1].window.restore_size[1], args[1].window.restore_size[2])
+		args[1].window.restore_size = nil
 	else
-		print("Maximizing!")
-		love.window.maximize()
+		local w, h, flags = love.window.getMode()
+		love.window.setFullscreen(true)
+		args[1].window.restore_size = {w, h}
+		c:resize(love.window.getDesktopDimensions(flags.display))
 	end
 	return true
 end
 
 function minButton(self, dt, mouse, args)
-	print("Minimizing!")
 	love.window.minimize()
 	return true
 end
@@ -567,7 +569,7 @@ control = {
 				
 				res_type = type(res)
 				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
-				if #self.keyboard.output >= self.keyboard.max_output then table.remove(self.keyboard.output, 1) end
+				if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
 				self.keyboard.output[#self.keyboard.output + 1] = output
 				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
 				
@@ -1149,24 +1151,35 @@ function Console:update(dt)
 	
 	self.mouse.down = is_down == 1 and not self.mouse.held
 	self.mouse.held = is_down == 1
-
-	result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
-	result = self.window.border.corner.top_left:update(dt, self.mouse, result, self)
-	result = self.window.border.corner.top_right:update(dt, self.mouse, result, self)
-	result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self)
-	result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self)
-	result = self.window.border.left:update(dt, self.mouse, result, self)
-	result = self.window.border.top:update(dt, self.mouse, result, self)
-	result = self.window.border.right:update(dt, self.mouse, result, self)
-	result = self.window.border.bottom:update(dt, self.mouse, result, self)
-	result = self.window.titlebar.exit:update(dt, self.mouse, result, self)
-	result = self.window.titlebar.minimize:update(dt, self.mouse, result)
-	result = self.window.titlebar.maximize:update(dt, self.mouse, result)
-	result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self)
-	result = self.scrollbar.bar:update(dt, self.mouse, result, self)
-	result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
-	result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
-	self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
+	--												        s         i              t 
+	--There might be a dry'r way to write this but I'm di s      c            a                 i                         g
+	--														  o                                            n
+	if love.window.getFullscreen() then
+		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self.running_callback)
+		result = self.window.titlebar.maximize:update(dt, self.mouse, result, self)
+		result = self.scrollbar.bar:update(dt, self.mouse, result, self)
+		result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
+		result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
+		self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
+	else
+		result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
+		result = self.window.border.corner.top_left:update(dt, self.mouse, result, self)
+		result = self.window.border.corner.top_right:update(dt, self.mouse, result, self)
+		result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self)
+		result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self)
+		result = self.window.border.left:update(dt, self.mouse, result, self)
+		result = self.window.border.top:update(dt, self.mouse, result, self)
+		result = self.window.border.right:update(dt, self.mouse, result, self)
+		result = self.window.border.bottom:update(dt, self.mouse, result, self)
+		result = self.window.titlebar.exit:update(dt, self.mouse, result, self)
+		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self)
+		result = self.window.titlebar.maximize:update(dt, self.mouse, result, self)
+		result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self)
+		result = self.scrollbar.bar:update(dt, self.mouse, result, self)
+		result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
+		result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
+		self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
+	end
 	
 	if win_x and win_y then self.window.x, self.window.y = win_x, win_y end
 	
@@ -1393,7 +1406,7 @@ function Console:resize(w, h)
 	
 	self.window.width, self.window.height = w, h
 	self.window.x, self.window.y = love.window.getPosition()
-
+	
 	self.window.border.visual:setDimensions(0, 0, w, h)
 	self.window.border.reset:setDimensions(border_size, border_size, w - (border_size * 2), h - (border_size * 2))
 	self.window.border.corner.top_left:setDimensions(0, 0, border_size, border_size)
@@ -1478,8 +1491,16 @@ end
 		--====++METHODS++====--
 
 --Print plain white output to the console.
-function Console:print(text)
-	local multiline = Line(self, tostring(text))
+function Console:print(...)
+	local text, args = "", table.pack(...)
+	
+	if #args > 1 then
+		for i, val in ipairs(args) do text = text .. stringify(val) .. (i ~= #args and "\t" or "") end
+	else
+		text = stringify(args[1])
+	end
+
+	local multiline = Line(self, text)
 
 	for i, line in ipairs(multiline) do
 		local res = self:submit(line)
@@ -1489,7 +1510,7 @@ function Console:print(text)
 			
 			res_type = type(res)
 			output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
-			if #self.keyboard.output >= self.keyboard.max_output then table.remove(self.keyboard.output, 1) end
+			if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
 			self.keyboard.output[#self.keyboard.output + 1] = output
 			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
 			if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
@@ -1501,7 +1522,18 @@ function Console:print(text)
 end
 
 --Print output to the console with a timestamp, and a color for the timestamp.
-function Console:log(text, color)
+function Console:log(color, ...)
+	local color_exists = string.find(color, "c@%d%d?%d?|%d%d?%d?|%d%d?%d?|%d%d?%d?|")
+
+	if color_exists then
+		local text, args = "", table.pack(...)
+
+		for i, val in ipairs(args) do text = text .. stringify(val) .. (i ~= #args and "\t" or "") end
+		
+		c:print(color .. "[" .. os.date("%c") .. "] " .. "c@1|1|1|1|" .. text)
+	else
+		c:print("c@1|1|1|1|" .. "[" .. os.date("%c") .. "] " .. color, ...)
+	end
 end
 
 --Clear the output of the console.

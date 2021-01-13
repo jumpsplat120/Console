@@ -67,8 +67,11 @@ function MultiLine:parseText(con, line, text)
 		elseif chr == "c" and text:find("@", base_index + 1) then --color code parsing
 			local tbl = {}
 			
-			for val in text:sub(base_index + 2):gmatch("(%d%d?%d?)|") do tbl[#tbl + 1] = val end
-			
+			for val in text:sub(base_index + 2):gmatch("(%d%d?%d?)|") do
+				tbl[#tbl + 1] = val
+				if #tbl == 4 then break end
+			end
+
 			if #tbl == 4 then
 				-- the extra 5 is the @, and the four dividers. We're already skipping c on this loop
 				skip = tbl[1]:len() + tbl[2]:len() + tbl[3]:len() + tbl[4]:len() + 5
