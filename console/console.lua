@@ -1157,7 +1157,8 @@ function Console:update(dt)
 	--There might be a dry'r way to write this but I'm di s      c            a                 i                         g
 	--														  o                                            n
 	if love.window.getFullscreen() then
-		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self.running_callback)
+		result = self.window.titlebar.exit:update(dt, self.mouse, self.running_callback, self)
+		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self)
 		result = self.window.titlebar.maximize:update(dt, self.mouse, result, self)
 		result = self.scrollbar.bar:update(dt, self.mouse, result, self)
 		result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
