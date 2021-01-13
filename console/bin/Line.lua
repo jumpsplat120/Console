@@ -49,6 +49,9 @@ function MultiLine:parseText(con, line, text)
 	for chr in text:gmatch(".") do
 		if skip > 0 then --skip over color codes
 			skip = skip - 1
+		elseif chr == " " then
+			width       = width + 1
+			parsed_text = parsed_text .. "\194\160"
 		elseif chr == "\n" then
 			line.text[#line.text + 1] = parsed_text
 			

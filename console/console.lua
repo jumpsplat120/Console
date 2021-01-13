@@ -567,6 +567,7 @@ control = {
 				
 				res_type = type(res)
 				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
+				if #self.keyboard.output >= self.keyboard.max_output then table.remove(self.keyboard.output, 1) end
 				self.keyboard.output[#self.keyboard.output + 1] = output
 				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
 				
@@ -1082,9 +1083,8 @@ function Console:new()
 		held = false
 	}
 	
-	self.scrollbar.max = self.window.height - self.scrollbar.bar.h - self.scrollbar.arrow_up.h
-	self.scrollbar.min = self.window.titlebar.size + self.scrollbar.arrow_down.h
-	
+	self.scrollbar.max = self.window.height - (scrollbar_height * 2)
+	self.scrollbar.min = self.window.titlebar.size + scrollbar_height
 	self.running_callback = nil
 end
 
@@ -1351,6 +1351,7 @@ function Console:draw()
 		for i = 0, self.keyboard.input.data:len(), self.keyboard.wrap_width_in_chars do
 			mod_str = mod_str .. self.keyboard.input.data:sub(i + 1, constrain(1, self.keyboard.input.data:len(), i + self.keyboard.wrap_width_in_chars)) .. "\n"
 		end
+		
 		love.graphics.print(mod_str:sub(1, -2), 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height))
 	else
 		love.graphics.printf(self.keyboard.input.data, 2, (self.window.height - self.font.height) - (input_line_breaks * self.font.height), wrap)
@@ -1412,7 +1413,7 @@ function Console:resize(w, h)
 	self.scrollbar.arrow_up:setDimensions(w - scrollbar_width, h - scrollbar_height, scrollbar_width, scrollbar_height)
 	self.scrollbar.background:setDimensions(w - scrollbar_width, tb_size, scrollbar_width, h)
 	
-	self.scrollbar.max = h - tb_size - (self.scrollbar.arrow_up.h * 2)
+	self.scrollbar.max = h - (self.scrollbar.arrow_up.h * 2)
 	
 	self.window.full_line_amount = round((self.window.height - self.window.titlebar.size) / self.font.height)
 	
@@ -1488,10 +1489,10 @@ function Console:print(text)
 			
 			res_type = type(res)
 			output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
-
+			if #self.keyboard.output >= self.keyboard.max_output then table.remove(self.keyboard.output, 1) end
 			self.keyboard.output[#self.keyboard.output + 1] = output
 			self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = output, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
-			if self.keyboard.input.data == "" and #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
+			if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
 				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
 				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			end
