@@ -145,7 +145,7 @@ end
 --about it short of recompiling love to reorder when certain things happen. So for now, wiggly windows are a feature.
 function borderInit(self, dt, mouse, args)
 	if not self.initial_click_pos or not self.initial_win_size then 
-		self.initial_click_pos = mouse.global.pos:clone()
+		self.initial_click_pos = mouse.global:clone()
 		self.initial_win_size = { 
 		x = args.window.x, 
 		y = args.window.y, 
@@ -153,7 +153,7 @@ function borderInit(self, dt, mouse, args)
 		h = args.window.height }
 	end
 	
-	return mouse.global.pos - self.initial_click_pos
+	return mouse.global - self.initial_click_pos
 end
 
 function borderMath(self, new, old)
@@ -445,15 +445,15 @@ function borderResetHover(self, dt, mouse, args)
 end
 
 function scrollbarBG(self, dt, mouse, args)
-	args[1].scrollbar.bar.y = mouse.loc.pos.y - (args[1].scrollbar.bar.h / 2)
+	args[1].scrollbar.bar.y = mouse.loc.y - (args[1].scrollbar.bar.h / 2)
 	args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, args[1].scrollbar.bar.y))
 	return "scrollbarHold"
 end
 
 function scrollbarBar(self, dt, mouse, args)	
 	if mouse.held then
-		if not self.mouse_offset then self.mouse_offset = self.y - mouse.global.pos.y end
-		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.global.pos.y + self.mouse_offset)
+		if not self.mouse_offset then self.mouse_offset = self.y - mouse.global.y end
+		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.global.y + self.mouse_offset)
 		args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, self.y))
 		return "scrollbarHold"
 	else
@@ -529,15 +529,22 @@ function exitButton(self, dt, mouse, args)
 end
 
 function maxButton(self, dt, mouse, args)
-	if love.window.getFullscreen() then 
-		love.window.setFullscreen(false)
-		c:resize(args[1].window.restore_size[1], args[1].window.restore_size[2])
+	if args[1].window.is_maximized then
+		local x, y, w, h = args[1].window.restore_size[1], args[1].window.restore_size[2], args[1].window.restore_size[3], args[1].window.restore_size[4]
+		Window:move(x, y)
+		Window:resize(w, h)
+		c:resize(w, h)
+		args[1].window.is_maximized = false
 		args[1].window.restore_size = nil
 	else
-		local w, h, flags = love.window.getMode()
-		love.window.setFullscreen(true)
-		args[1].window.restore_size = {w, h}
-		c:resize(love.window.getDesktopDimensions(flags.display))
+		local w, h, _ = love.window.getMode()
+		local x, y = love.window.getPosition()
+		local sx, sy, sw, sh = Window:getUsableBounds(args[1].window.display)
+		Window:move(sx, sy)
+		Window:resize(sw, sh)
+		args[1].window.restore_size = {x, y, w, h}
+		args[1].window.is_maximized = true
+		c:resize(sw, sh)
 	end
 	return true
 end
@@ -1128,7 +1135,7 @@ function Console:load(ctype)
 	
 	self.window.titlebar.font = love.graphics.newFont(path .. "assets/ui.ttf", self.window.titlebar.size * .45)
 
-	self.window.x, self.window.y = love.window.getPosition()
+	self.window.x, self.window.y, self.window.display = love.window.getPosition()
 	
 	self.window.full_line_amount = round((self.window.height - self.window.titlebar.size) / self.font.height)
 	
@@ -1147,7 +1154,9 @@ function Console:load(ctype)
 	love.window.setTitle(self.window.titlebar.text)
 	
 	love.window.setIcon(self.window.titlebar.icon_imageData)
-		
+	
+	love.window.setDisplaySleepEnabled(true)
+	
 	assert(self.window.titlebar.icon:getWidth()  <= 256, "The icon must be a maximum of 256 wide!")
 	assert(self.window.titlebar.icon:getHeight() <= 256, "The icon must be a maximum of 256 tall!")
 
@@ -1167,15 +1176,8 @@ function Console:update(dt)
 	--												        s         i              t 
 	--There might be a dry'r way to write this but I'm di s      c            a                 i                         g
 	--														  o                                            n
-	if love.window.getFullscreen() then
-		result = self.window.titlebar.exit:update(dt, self, self.running_callback, self)
-		result = self.window.titlebar.minimize:update(dt, self, result, self)
-		result = self.window.titlebar.maximize:update(dt, self, result, self)
-		result = self.scrollbar.bar:update(dt, self, result, self)
-		result = self.scrollbar.arrow_down:update(dt, self, result, self)
-		result = self.scrollbar.arrow_up:update(dt, self, result, self)
-		self.running_callback = self.scrollbar.background:update(dt, self, result, self)
-	else
+	
+	if not self.window.is_maximized then
 		result = self.window.border.reset:update(dt, self, self.running_callback)
 		result = self.window.border.corner.top_left:update(dt, self, result, self)
 		result = self.window.border.corner.top_right:update(dt, self, result, self)
@@ -1184,16 +1186,21 @@ function Console:update(dt)
 		result = self.window.border.left:update(dt, self, result, self)
 		result = self.window.border.top:update(dt, self, result, self)
 		result = self.window.border.right:update(dt, self, result, self)
-		result = self.window.border.bottom:update(dt, self, result, self)
-		result = self.window.titlebar.exit:update(dt, self, result, self)
+		self.running_callback = self.window.border.bottom:update(dt, self, result, self)
+	end
+	
+		result = self.window.titlebar.exit:update(dt, self, self.running_callback, self)
 		result = self.window.titlebar.minimize:update(dt, self, result, self)
-		result = self.window.titlebar.maximize:update(dt, self, result, self)
-		result, win_x, win_y = self.window.titlebar.background:update(dt, self, result, self)
-		result = self.scrollbar.bar:update(dt, self, result, self)
+		self.running_callback = self.window.titlebar.maximize:update(dt, self, result, self)
+	
+	if not self.window.is_maximized then
+		self.running_callback, win_x, win_y = self.window.titlebar.background:update(dt, self, self.running_callback, self)
+	end
+	
+		result = self.scrollbar.bar:update(dt, self, self.running_callback, self)
 		result = self.scrollbar.arrow_down:update(dt, self, result, self)
 		result = self.scrollbar.arrow_up:update(dt, self, result, self)
 		self.running_callback = self.scrollbar.background:update(dt, self, result, self)
-	end
 	
 	if win_x and win_y then self.window.x, self.window.y = win_x, win_y end
 	

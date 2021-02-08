@@ -14,12 +14,7 @@ local sdl = ffi.os == "Windows" and ffi.load("SDL2") or ffi.C
 -- We need this for borderless dragging, in windows at least; still need to test on nix and osx.
 -- Note that for this to work, the user needs to give screen position hints to the application.
 ffi.cdef([[
-	typedef struct SDL_Rect
-	{
-    	int x, y;
-    	int w, h;
-	} SDL_Rect;
-
+	typedef struct SDL_Rect { int x, y, w, h; } SDL_Rect;
 	uint32_t SDL_GetGlobalMouseState(int *x, int *y); /*needs SDL 2.0.4 or higher*/
 	int SDL_GetNumVideoDisplays(void);
 	int SDL_GetDisplayBounds(int displayIndex, SDL_Rect* rect);
