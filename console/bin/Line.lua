@@ -64,6 +64,7 @@ function MultiLine:parseText(con, line, text)
 			width       = 0
 			line.height = 0
 			line.text   = { line.text[#line.text - 1] }
+			parsed_text = ""
 		elseif chr == "c" and text:find("@", base_index + 1) then --color code parsing
 			local tbl = {}
 			

@@ -290,17 +290,17 @@ function Rectangle:draw()
 	end
 end
 
-function Rectangle:update(dt, mouse, skip, ...)
+function Rectangle:update(dt, con, skip, ...)
 	local hover, callback
 
-	hover = self:containsPoint(mouse.loc.pos)
+	hover = self:containsPoint(con.mouse.loc)
 	
 	self.click = false
 	
 	if not hover then
 		self.hover = false
 		self.held  = false
-	elseif not mouse.held then
+	elseif not con.mouse.held then
 		self.held  = false
 	end
 
@@ -308,22 +308,20 @@ function Rectangle:update(dt, mouse, skip, ...)
 		if hover then
 			self.hover = true
 			callback = self.meta.callback.hover ~= true and self.meta.callback.hover or callback
-			
-			local calculated_pos = mouse.loc.pos + Point(love.window.getPosition())
-			
+
 			if self.held then
 				callback = self.meta.callback.hold ~= true and self.meta.callback.hold or callback
-			elseif mouse.down and (calculated_pos == mouse.global.pos) then
+			elseif con.mouse.down and (con.mouse.loc + con.window == con.mouse.global) then
 				callback = self.meta.callback.click ~= true and self.meta.callback.click or callback
-				self.click = mouse.down
+				self.click = con.mouse.down
 				self.held  = true
 			end
 		end
 		
-		if callback then return callback(self, dt, mouse, {...}) end
+		if callback then return callback(self, dt, con.mouse, {...}) end
 	else
 		for key, name in pairs(self.meta.callback.names) do
-			if name == skip then return self.meta.callback[key](self, dt, mouse, {...}) end
+			if name == skip then return self.meta.callback[key](self, dt, con.mouse, {...}) end
 		end
 		
 		return skip

@@ -54,11 +54,11 @@ require(path .. "bin/polyfill_table")
 
 local def_width, def_height, def_min_width, def_min_height, def_font_size, def_font_color, dark_theme_active, file, def_theme, titlebar_size, scrollbar_width, scrollbar_height, scroll_amt
 
-def_width  = 976
-def_height = 480
-def_min_width = 677
+def_width      = 976
+def_height     = 480
+def_min_width  = 677
 def_min_height = 343
-def_font_size = 14
+def_font_size  = 14
 
 --NOTE ALL THE COLORS ARE IN THE REGISTRY TOO IF I FEEL LIKE UPDATING THAT AT ANY POINT
 --The flicker is due to how I'm getting registry entries, which also we don't want to do if the os isn't windows
@@ -157,12 +157,27 @@ function borderInit(self, dt, mouse, args)
 end
 
 function borderMath(self, new, old)
-	if self.window.flags.minwidth < new.w and self.window.flags.minheight < new.h then
-		local pos_match, size_match = new.x ~= old.x or new.y ~= old.y, new.w ~= old.w or new.h ~= old.h
-		if pos_match then Window:move(new.x, new.y) end
-		if size_match then Window:resize(new.w, new.h) end
-		if pos_match or size_match then self:resize(new.w, new.h) end
+	local min_w, min_h = self.window.flags.minwidth >= new.w, self.window.flags.minheight >= new.h
+	
+	local pos_mismatch, size_mismatch, x, y, w, h
+	
+	if not min_w and not min_h then
+		pos_mismatch  = new.x ~= old.x or new.y ~= old.y
+		size_mismatch = new.w ~= old.w or new.h ~= old.h
+		x, y, w, h = new.x, new.y, new.w, new.h
+	elseif not min_w then
+		pos_mismatch  = new.x ~= old.x
+		size_mismatch = new.w ~= old.w
+		x, y, w, h = new.x, old.y, new.w, old.h
+	elseif not min_h then
+		pos_mismatch  = new.y ~= old.y
+		size_mismatch = new.h ~= old.h
+		x, y, w, h = old.x, new.y, old.w, new.h
 	end
+	
+	if pos_mismatch then Window:move(x, y) end
+	if size_mismatch then Window:resize(w, h) end
+	if pos_mismatch or size_mismatch then self:resize(w, h) end
 end
 
 function borderLeftHold(self, dt, mouse, args)
@@ -496,12 +511,14 @@ function titlebarGrab(self, dt, mouse, args)
 end
 
 function titlebarHold(self, dt, mouse, args)
-	self.offset = self.offset == nil and mouse.loc.pos:clone() or self.offset
+	self.offset = self.offset == nil and mouse.loc:clone() or self.offset
 	if not mouse.held then
 		self.offset = nil
 	else
-		local x, y = mouse.global.pos.x - self.offset.x, mouse.global.pos.y - self.offset.y
-		love.window.setPosition(x, y, args[1].window.display) --Display is not being dynamically calc'd! Needs testing on multi monitor setups
+		local x, y = mouse.global.x - self.offset.x, mouse.global.y - self.offset.y
+		local _, _, flags = love.window.getMode()
+		args[1].window.display = flags.display
+		love.window.setPosition(x, y, args[1].window.display)
 		return "titlebarHold", x, y
 	end
 end
@@ -1075,16 +1092,10 @@ function Console:new()
 	}
 	
 	self.mouse = {
-		global = {
-			pos = Point(0, 0),
-			dt  = Point(0, 0)
-		},
-		loc = {
-			pos = Point(0, 0),
-			dt  = Point(0, 0)
-		},
-		down = false,
-		held = false
+		global = Point(0, 0),
+		loc    = Point(0, 0),
+		down   = false,
+		held   = false
 	}
 	
 	self.scrollbar.max = self.window.height - (scrollbar_height * 2)
@@ -1157,31 +1168,31 @@ function Console:update(dt)
 	--There might be a dry'r way to write this but I'm di s      c            a                 i                         g
 	--														  o                                            n
 	if love.window.getFullscreen() then
-		result = self.window.titlebar.exit:update(dt, self.mouse, self.running_callback, self)
-		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self)
-		result = self.window.titlebar.maximize:update(dt, self.mouse, result, self)
-		result = self.scrollbar.bar:update(dt, self.mouse, result, self)
-		result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
-		result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
-		self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
+		result = self.window.titlebar.exit:update(dt, self, self.running_callback, self)
+		result = self.window.titlebar.minimize:update(dt, self, result, self)
+		result = self.window.titlebar.maximize:update(dt, self, result, self)
+		result = self.scrollbar.bar:update(dt, self, result, self)
+		result = self.scrollbar.arrow_down:update(dt, self, result, self)
+		result = self.scrollbar.arrow_up:update(dt, self, result, self)
+		self.running_callback = self.scrollbar.background:update(dt, self, result, self)
 	else
-		result = self.window.border.reset:update(dt, self.mouse, self.running_callback)
-		result = self.window.border.corner.top_left:update(dt, self.mouse, result, self)
-		result = self.window.border.corner.top_right:update(dt, self.mouse, result, self)
-		result = self.window.border.corner.bot_left:update(dt, self.mouse, result, self)
-		result = self.window.border.corner.bot_right:update(dt, self.mouse, result, self)
-		result = self.window.border.left:update(dt, self.mouse, result, self)
-		result = self.window.border.top:update(dt, self.mouse, result, self)
-		result = self.window.border.right:update(dt, self.mouse, result, self)
-		result = self.window.border.bottom:update(dt, self.mouse, result, self)
-		result = self.window.titlebar.exit:update(dt, self.mouse, result, self)
-		result = self.window.titlebar.minimize:update(dt, self.mouse, result, self)
-		result = self.window.titlebar.maximize:update(dt, self.mouse, result, self)
-		result, win_x, win_y = self.window.titlebar.background:update(dt, self.mouse, result, self)
-		result = self.scrollbar.bar:update(dt, self.mouse, result, self)
-		result = self.scrollbar.arrow_down:update(dt, self.mouse, result, self)
-		result = self.scrollbar.arrow_up:update(dt, self.mouse, result, self)
-		self.running_callback = self.scrollbar.background:update(dt, self.mouse, result, self)
+		result = self.window.border.reset:update(dt, self, self.running_callback)
+		result = self.window.border.corner.top_left:update(dt, self, result, self)
+		result = self.window.border.corner.top_right:update(dt, self, result, self)
+		result = self.window.border.corner.bot_left:update(dt, self, result, self)
+		result = self.window.border.corner.bot_right:update(dt, self, result, self)
+		result = self.window.border.left:update(dt, self, result, self)
+		result = self.window.border.top:update(dt, self, result, self)
+		result = self.window.border.right:update(dt, self, result, self)
+		result = self.window.border.bottom:update(dt, self, result, self)
+		result = self.window.titlebar.exit:update(dt, self, result, self)
+		result = self.window.titlebar.minimize:update(dt, self, result, self)
+		result = self.window.titlebar.maximize:update(dt, self, result, self)
+		result, win_x, win_y = self.window.titlebar.background:update(dt, self, result, self)
+		result = self.scrollbar.bar:update(dt, self, result, self)
+		result = self.scrollbar.arrow_down:update(dt, self, result, self)
+		result = self.scrollbar.arrow_up:update(dt, self, result, self)
+		self.running_callback = self.scrollbar.background:update(dt, self, result, self)
 	end
 	
 	if win_x and win_y then self.window.x, self.window.y = win_x, win_y end
@@ -1206,10 +1217,9 @@ function Console:update(dt)
 			end
 		end
 	end
-	
-	self.mouse.global.dt:set(x - self.mouse.global.pos.x, y - self.mouse.global.pos.y)
-	self.mouse.global.pos:set(x, y)
-	self.mouse.loc.dt:set(0, 0)
+
+	self.mouse.loc:set(love.mouse.getPosition())
+	self.mouse.global:set(x, y)
 	
 	self.keyboard.mod = {}
 	
@@ -1475,12 +1485,6 @@ end
 function Console:wheelmoved(x, y)
 	self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + (y > 0 and -scroll_amt or (y < 0 and scroll_amt or 0)))
 	self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
-end
-
---Placed in the love.mousemoved function.
-function Console:mousemoved(x, y, dx, dy, istouch)
-	self.mouse.loc.pos:set(x, y)
-	self.mouse.loc.dt:set(dx, dy)
 end
 
 		--====++CALLBACKS++====--
