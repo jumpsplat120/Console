@@ -1,11 +1,12 @@
-local path, classic, inspect, Object, Color, Point, Rectangle, Line, Console, Window
+local path, classic, inspect, registry, Object, Color, Point, Rectangle, Line, Console, Window
 
 path = string.match(..., ".*/") or ""
 
-inspect = require(path .. "third_party/inspect")
-Object  = require(path .. "third_party/classic")
-Mouse   = require(path .. "bin/global_mouse")
-Window  = require(path .. "bin/window_manipulation")
+inspect  = require(path .. "third_party/inspect")
+Object   = require(path .. "third_party/classic")
+Mouse    = require(path .. "bin/global_mouse")
+Window   = require(path .. "bin/window_manipulation")
+reg      = require(path .. "bin/luareg/main")
 
 require(path .. "bin/monkeypatch_type")
 require(path .. "bin/polyfill_table")
@@ -61,31 +62,30 @@ def_min_height = 343
 def_font_size  = 14
 
 --NOTE ALL THE COLORS ARE IN THE REGISTRY TOO IF I FEEL LIKE UPDATING THAT AT ANY POINT
---The flicker is due to how I'm getting registry entries, which also we don't want to do if the os isn't windows
-file = io.popen("reg query HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize /v AppsUseLightTheme")
 
-dark_theme_active = tonumber(file:read("*a"):match("%dx(%d)")) == 0
-
--- Did you know that you HAVE to use double quotes or this command fails?
-file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v CaptionHeight')
-
-titlebar_size = tonumber(file:read("*a"):match("-*%d+")) / -11
-
-file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v ScrollWidth')
-
-scrollbar_width = tonumber(file:read("*a"):match("-*%d+")) / -15
-
-file = io.popen('reg query "HKCU\\Control Panel\\Desktop\\WindowMetrics" /v ScrollHeight')
-
-scrollbar_height = tonumber(file:read("*a"):match("-*%d+")) / -15
-
-file = io.popen('reg query "HKCU\\Control Panel\\Desktop" /v WheelScrollLines')
-
---negative 1 means "one screen at a time" which means nothing on a console
-scroll_amt = tonumber(file:read("*a"):match("-*%d+"))
-scroll_amt = scroll_amt == -1 and 1 or scroll_amt
-
-file:close()
+do
+--Don't get reg entries if os ~= windows
+	local root, path
+	
+	reg:load()
+	
+	root = "HKCU"
+	path = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize"
+	
+	dark_theme_active = reg:getValue(root, path, "AppsUseLightTheme") == 0
+	
+	path = "Control Panel\\Desktop\\WindowMetrics"
+	
+	titlebar_size    = reg:getValue(root, path, "CaptionHeight") / -11
+	scrollbar_height = reg:getValue(root, path, "ScrollHeight")  / -15
+	scrollbar_width  = reg:getValue(root, path, "ScrollWidth")   / -15
+	
+	path = "Control Panel\\Desktop"
+	
+	--negative 1 means "one screen at a time" which means nothing on a console
+	scroll_amt = reg:getValue(root, path, "WheelScrollLines")
+	scroll_amt = scroll_amt == -1 and 1 or scroll_amt
+end
 
 -----BASIC FUNCTIONS-----
 
