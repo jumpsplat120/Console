@@ -1,4 +1,4 @@
-local path, classic, inspect, registry, Object, Color, Point, Rectangle, Line, Console, Window
+local path, classic, inspect, reg, Object, Color, Point, Rectangle, Line, Console, Window
 
 path = string.match(..., ".*/") or ""
 
@@ -64,7 +64,7 @@ def_font_size  = 14
 --NOTE ALL THE COLORS ARE IN THE REGISTRY TOO IF I FEEL LIKE UPDATING THAT AT ANY POINT
 
 do
---Don't get reg entries if os ~= windows
+	--Don't get reg entries if os ~= windows
 	local root, path
 	
 	reg:load()
@@ -92,38 +92,36 @@ end
 local round, map, constrain, stringify, cycle
 
 do
-
-function round(val)
-    return math.floor(val + .5)
-end
-
-function map(from_min, from_max, to_min, to_max, val)
-	return (val - from_min) * (to_max - to_min) / (from_max - from_min) + to_min
-end
-
-function constrain(min, max, val)
-	return (val < min and min) or (val > max and max) or val
-end
-
-function cycle(min, max, val)
-	local res
-	if val < min or val > max then
-		local is_more, dt1, dt2
-		is_more = val > max
-		dt1 = max - min
-		dt2 = math.ceil(math.abs((val - (is_more and max or min)) / dt1)) * dt1
-		res = is_more and (val - dt2) or (val + dt2)
-	else
-		res = val
+	function round(val)
+	    return math.floor(val + .5)
 	end
-	
-	return res
-end
 
-function stringify(val)
-	return type(val) == "table" and inspect(val) or tostring(val)
-end
+	function map(from_min, from_max, to_min, to_max, val)
+		return (val - from_min) * (to_max - to_min) / (from_max - from_min) + to_min
+	end
 
+	function constrain(min, max, val)
+		return (val < min and min) or (val > max and max) or val
+	end
+
+	function cycle(min, max, val)
+		local res
+		if val < min or val > max then
+			local is_more, dt1, dt2
+			is_more = val > max
+			dt1 = max - min
+			dt2 = math.ceil(math.abs((val - (is_more and max or min)) / dt1)) * dt1
+			res = is_more and (val - dt2) or (val + dt2)
+		else
+			res = val
+		end
+		
+		return res
+	end
+
+	function stringify(val)
+		return type(val) == "table" and inspect(val) or tostring(val)
+	end
 end
 -----CALLBACKS-----
 
@@ -134,634 +132,632 @@ local scrollbarClickDown, scrollbarHoldUp, scrollbarHoldDown, titlebar
 local exitButton, maxButton, minButton, control
 
 do
-
-function noPassthrough()
-	return true
-end
-
---Some of the border extends visually "wiggle" the drawn elements. I have no idea where that's coming from because
---the elements draw based on their own internal idea of the coord system. It's possible since Love is running 
---during the resize, it's one loop behind kind of like with the drawn window, which means there's nothing to do
---about it short of recompiling love to reorder when certain things happen. So for now, wiggly windows are a feature.
-function borderInit(self, dt, mouse, args)
-	if not self.initial_click_pos or not self.initial_win_size then 
-		self.initial_click_pos = mouse.global:clone()
-		self.initial_win_size = { 
-		x = args.window.x, 
-		y = args.window.y, 
-		w = args.window.width, 
-		h = args.window.height }
-	end
-	
-	return mouse.global - self.initial_click_pos
-end
-
-function borderMath(self, new, old)
-	local min_w, min_h = self.window.flags.minwidth >= new.w, self.window.flags.minheight >= new.h
-	
-	local pos_mismatch, size_mismatch, x, y, w, h
-	
-	if not min_w and not min_h then
-		pos_mismatch  = new.x ~= old.x or new.y ~= old.y
-		size_mismatch = new.w ~= old.w or new.h ~= old.h
-		x, y, w, h = new.x, new.y, new.w, new.h
-	elseif not min_w then
-		pos_mismatch  = new.x ~= old.x
-		size_mismatch = new.w ~= old.w
-		x, y, w, h = new.x, old.y, new.w, old.h
-	elseif not min_h then
-		pos_mismatch  = new.y ~= old.y
-		size_mismatch = new.h ~= old.h
-		x, y, w, h = old.x, new.y, old.w, new.h
-	end
-	
-	if pos_mismatch then Window:move(x, y) end
-	if size_mismatch then Window:resize(w, h) end
-	if pos_mismatch or size_mismatch then self:resize(w, h) end
-end
-
-function borderLeftHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x + diff.x
-		new.y = self.initial_win_size.y
-		
-		new.w = self.initial_win_size.w - diff.x
-		new.h = self.initial_win_size.h
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "leftHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
+	function noPassthrough()
 		return true
 	end
-end
 
-function borderRightHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
+	--Some of the border extends visually "wiggle" the drawn elements. I have no idea where that's coming from because
+	--the elements draw based on their own internal idea of the coord system. It's possible since Love is running 
+	--during the resize, it's one loop behind kind of like with the drawn window, which means there's nothing to do
+	--about it short of recompiling love to reorder when certain things happen. So for now, wiggly windows are a feature.
+	function borderInit(self, dt, mouse, args)
+		if not self.initial_click_pos or not self.initial_win_size then 
+			self.initial_click_pos = mouse.global:clone()
+			self.initial_win_size = { 
+			x = args.window.x, 
+			y = args.window.y, 
+			w = args.window.width, 
+			h = args.window.height }
+		end
 		
-		new.x = self.initial_win_size.x
-		new.y = self.initial_win_size.y
+		return mouse.global - self.initial_click_pos
+	end
+
+	function borderMath(self, new, old)
+		local min_w, min_h = self.window.flags.minwidth >= new.w, self.window.flags.minheight >= new.h
 		
-		new.w = self.initial_win_size.w + diff.x
-		new.h = self.initial_win_size.h
+		local pos_mismatch, size_mismatch, x, y, w, h
 		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
+		if not min_w and not min_h then
+			pos_mismatch  = new.x ~= old.x or new.y ~= old.y
+			size_mismatch = new.w ~= old.w or new.h ~= old.h
+			x, y, w, h = new.x, new.y, new.w, new.h
+		elseif not min_w then
+			pos_mismatch  = new.x ~= old.x
+			size_mismatch = new.w ~= old.w
+			x, y, w, h = new.x, old.y, new.w, old.h
+		elseif not min_h then
+			pos_mismatch  = new.y ~= old.y
+			size_mismatch = new.h ~= old.h
+			x, y, w, h = old.x, new.y, old.w, new.h
+		end
 		
-		borderMath(args[1], new, old)
+		if pos_mismatch then Window:move(x, y) end
+		if size_mismatch then Window:resize(w, h) end
+		if pos_mismatch or size_mismatch then self:resize(w, h) end
+	end
+
+	function borderLeftHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
 		
-		return "rightHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x + diff.x
+			new.y = self.initial_win_size.y
+			
+			new.w = self.initial_win_size.w - diff.x
+			new.h = self.initial_win_size.h
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "leftHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderRightHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
 		
-		local w, h, _ = love.window.getMode()
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x
+			new.y = self.initial_win_size.y
+			
+			new.w = self.initial_win_size.w + diff.x
+			new.h = self.initial_win_size.h
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "rightHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderTopHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
 		
-		love.resize(w, h)
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x
+			new.y = self.initial_win_size.y + diff.y
+			
+			new.w = self.initial_win_size.w
+			new.h = self.initial_win_size.h - diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "topHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderBotHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
 		
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x
+			new.y = self.initial_win_size.y
+			
+			new.w = self.initial_win_size.w
+			new.h = self.initial_win_size.h + diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "botHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderTLeftHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
+		
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x + diff.x
+			new.y = self.initial_win_size.y + diff.y
+			
+			new.w = self.initial_win_size.w - diff.x
+			new.h = self.initial_win_size.h - diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "tLeftHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderTRightHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
+		
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x
+			new.y = self.initial_win_size.y + diff.y
+			
+			new.w = self.initial_win_size.w + diff.x
+			new.h = self.initial_win_size.h - diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "tRightHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderBLeftHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
+		
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x + diff.x
+			new.y = self.initial_win_size.y
+			
+			new.w = self.initial_win_size.w - diff.x
+			new.h = self.initial_win_size.h + diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+			
+			borderMath(args[1], new, old)
+			
+			return "bLeftHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderBRightHold(self, dt, mouse, args)
+		local diff = borderInit(self, dt, mouse, args[1])
+		
+		if mouse.held then
+			local new, old, _ = {}, {}
+			
+			new.x = self.initial_win_size.x
+			new.y = self.initial_win_size.y
+			
+			new.w = self.initial_win_size.w + diff.x
+			new.h = self.initial_win_size.h + diff.y
+			
+			old.w, old.h, _ = love.window.getMode()
+			old.x, old.y = love.window.getPosition()
+
+			borderMath(args[1], new, old)
+			
+			return "bRightHold"
+		else
+			self.initial_click_pos = nil
+			self.initial_win_size  = nil
+			
+			local w, h, _ = love.window.getMode()
+			
+			love.resize(w, h)
+			
+			return true
+		end
+	end
+
+	function borderHorizontalHover(self, dt, mouse, args)
+		love.mouse.setCursor(mouse.system.size_hor)
 		return true
 	end
-end
 
-function borderTopHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x
-		new.y = self.initial_win_size.y + diff.y
-		
-		new.w = self.initial_win_size.w
-		new.h = self.initial_win_size.h - diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "topHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
+	function borderVerticalHover(self, dt, mouse, args)
+		love.mouse.setCursor(mouse.system.size_vert)
 		return true
 	end
-end
 
-function borderBotHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x
-		new.y = self.initial_win_size.y
-		
-		new.w = self.initial_win_size.w
-		new.h = self.initial_win_size.h + diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "botHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
+	function borderLeftUpHover(self, dt, mouse, args)
+		love.mouse.setCursor(mouse.system.size_lup)
 		return true
 	end
-end
 
-function borderTLeftHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x + diff.x
-		new.y = self.initial_win_size.y + diff.y
-		
-		new.w = self.initial_win_size.w - diff.x
-		new.h = self.initial_win_size.h - diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "tLeftHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
+	function borderRightUpHover(self, dt, mouse, args)
+		love.mouse.setCursor(mouse.system.size_rup)
 		return true
 	end
-end
 
-function borderTRightHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x
-		new.y = self.initial_win_size.y + diff.y
-		
-		new.w = self.initial_win_size.w + diff.x
-		new.h = self.initial_win_size.h - diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "tRightHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
-		return true
+	function borderResetHover(self, dt, mouse, args)
+		if love.mouse.getCursor() ~= mouse.system.pointer then love.mouse.setCursor(mouse.system.pointer) end
 	end
-end
 
-function borderBLeftHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x + diff.x
-		new.y = self.initial_win_size.y
-		
-		new.w = self.initial_win_size.w - diff.x
-		new.h = self.initial_win_size.h + diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-		
-		borderMath(args[1], new, old)
-		
-		return "bLeftHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
-		return true
-	end
-end
-
-function borderBRightHold(self, dt, mouse, args)
-	local diff = borderInit(self, dt, mouse, args[1])
-	
-	if mouse.held then
-		local new, old, _ = {}, {}
-		
-		new.x = self.initial_win_size.x
-		new.y = self.initial_win_size.y
-		
-		new.w = self.initial_win_size.w + diff.x
-		new.h = self.initial_win_size.h + diff.y
-		
-		old.w, old.h, _ = love.window.getMode()
-		old.x, old.y = love.window.getPosition()
-
-		borderMath(args[1], new, old)
-		
-		return "bRightHold"
-	else
-		self.initial_click_pos = nil
-		self.initial_win_size  = nil
-		
-		local w, h, _ = love.window.getMode()
-		
-		love.resize(w, h)
-		
-		return true
-	end
-end
-
-function borderHorizontalHover(self, dt, mouse, args)
-	love.mouse.setCursor(mouse.system.size_hor)
-	return true
-end
-
-function borderVerticalHover(self, dt, mouse, args)
-	love.mouse.setCursor(mouse.system.size_vert)
-	return true
-end
-
-function borderLeftUpHover(self, dt, mouse, args)
-	love.mouse.setCursor(mouse.system.size_lup)
-	return true
-end
-
-function borderRightUpHover(self, dt, mouse, args)
-	love.mouse.setCursor(mouse.system.size_rup)
-	return true
-end
-
-function borderResetHover(self, dt, mouse, args)
-	if love.mouse.getCursor() ~= mouse.system.pointer then love.mouse.setCursor(mouse.system.pointer) end
-end
-
-function scrollbarBG(self, dt, mouse, args)
-	args[1].scrollbar.bar.y = mouse.loc.y - (args[1].scrollbar.bar.h / 2)
-	args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, args[1].scrollbar.bar.y))
-	return "scrollbarHold"
-end
-
-function scrollbarBar(self, dt, mouse, args)	
-	if mouse.held then
-		if not self.mouse_offset then self.mouse_offset = self.y - mouse.global.y end
-		self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.global.y + self.mouse_offset)
-		args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, self.y))
+	function scrollbarBG(self, dt, mouse, args)
+		args[1].scrollbar.bar.y = mouse.loc.y - (args[1].scrollbar.bar.h / 2)
+		args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, args[1].scrollbar.bar.y))
 		return "scrollbarHold"
-	else
-		self.mouse_offset = nil
-		
+	end
+
+	function scrollbarBar(self, dt, mouse, args)	
+		if mouse.held then
+			if not self.mouse_offset then self.mouse_offset = self.y - mouse.global.y end
+			self.y = constrain(args[1].scrollbar.min, args[1].scrollbar.max, mouse.global.y + self.mouse_offset)
+			args[1].window.scroll_offset = round(map(args[1].scrollbar.min, args[1].scrollbar.max, 0, args[1].keyboard.max_output, self.y))
+			return "scrollbarHold"
+		else
+			self.mouse_offset = nil
+			
+			return true
+		end
+	end
+
+	function scrollbarMath(self, console, adjust)
+		console.window.scroll_offset = constrain(0, console.keyboard.max_output, console.window.scroll_offset + adjust)
+		console.scrollbar.bar.y = round(map(0, console.keyboard.max_output, console.scrollbar.min, console.scrollbar.max, console.window.scroll_offset))
+	end
+
+	function scrollbarClickUp(self, dt, mouse, args)
+		scrollbarMath(self, args[1], 1)
 		return true
 	end
-end
 
-function scrollbarMath(self, console, adjust)
-	console.window.scroll_offset = constrain(0, console.keyboard.max_output, console.window.scroll_offset + adjust)
-	console.scrollbar.bar.y = round(map(0, console.keyboard.max_output, console.scrollbar.min, console.scrollbar.max, console.window.scroll_offset))
-end
-
-function scrollbarClickUp(self, dt, mouse, args)
-	scrollbarMath(self, args[1], 1)
-	return true
-end
-
-function scrollbarClickDown(self, dt, mouse, args)
-	scrollbarMath(self, args[1], -1)
-	return true
-end
-
-function scrollbarHoldUp(self, dt, mouse, args)
-	if not self.timeout then self.timeout = 0 end
-	self.timeout = self.timeout + dt
-	
-	if self.timeout > .75 then
-		if mouse.held then
-			scrollbarMath(self, args[1], 1)
-		else
-			self.timeout = nil
-			return true
-		end
+	function scrollbarClickDown(self, dt, mouse, args)
+		scrollbarMath(self, args[1], -1)
+		return true
 	end
-end
 
-function scrollbarHoldDown(self, dt, mouse, args)
-	if not self.timeout then self.timeout = 0 end
-	self.timeout = self.timeout + dt
-	
-	if self.timeout > .75 then
-		if mouse.held then
-			scrollbarMath(self, args[1], -1)
-		else
-			self.timeout = nil
-			return true
-		end
-	end
-end
-
-function titlebarGrab(self, dt, mouse, args)
-	return "titlebarHold"
-end
-
-function titlebarHold(self, dt, mouse, args)
-	self.offset = self.offset == nil and mouse.loc:clone() or self.offset
-	if not mouse.held then
-		self.offset = nil
-	else
-		local x, y = mouse.global.x - self.offset.x, mouse.global.y - self.offset.y
-		local _, _, flags = love.window.getMode()
-		args[1].window.display = flags.display
-		love.window.setPosition(x, y, args[1].window.display)
-		return "titlebarHold", x, y
-	end
-end
-
-function exitButton(self, dt, mouse, args)
-	love.event.quit(0)
-	return true
-end
-
-function maxButton(self, dt, mouse, args)
-	if args[1].window.is_maximized then
-		local x, y, w, h = args[1].window.restore_size[1], args[1].window.restore_size[2], args[1].window.restore_size[3], args[1].window.restore_size[4]
-		Window:move(x, y)
-		Window:resize(w, h)
-		c:resize(w, h)
-		args[1].window.is_maximized = false
-		args[1].window.restore_size = nil
-	else
-		local w, h, _ = love.window.getMode()
-		local x, y = love.window.getPosition()
-		local sx, sy, sw, sh = Window:getUsableBounds(args[1].window.display)
-		Window:move(sx, sy)
-		Window:resize(sw, sh)
-		args[1].window.restore_size = {x, y, w, h}
-		args[1].window.is_maximized = true
-		c:resize(sw, sh)
-	end
-	return true
-end
-
-function minButton(self, dt, mouse, args)
-	love.window.minimize()
-	return true
-end
-
-control = {
-	backspace = function(self)
-		local text_len, decrease, text
+	function scrollbarHoldUp(self, dt, mouse, args)
+		if not self.timeout then self.timeout = 0 end
+		self.timeout = self.timeout + dt
 		
-		text     = self.keyboard.input.data
-		text_len = text:len()
-		decrease = self.keyboard.input.current_width - self.font.width
-		
-		if self.keyboard.highlight then
-			self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars))
-			self.keyboard.input.data = ""
-			self.keyboard.input.current_width = 0
-			self.cursor.pos = 0
-			self.keyboard.highlight = false
-		else
-			self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
-			self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
-			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
-			self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - ((self.keyboard.input.current_width == (self.keyboard.wrap_width_in_chars - 1) * self.font.width) and 1 or 0))
-		end
-		
-		self.cursor.timer = 0
-		self.cursor.showing = true
-	end,
-	enter = function(self)
-		local input, multiline
-		
-		input = self.keyboard.input
-
-		multiline = Line(self, input.data)
-
-		for i, line in ipairs(multiline) do
-			local res = self:submit(line)
-			
-			if res then
-				local output, res_type
-				
-				res_type = type(res)
-				output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
-				if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
-				self.keyboard.output[#self.keyboard.output + 1] = output
-				self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
-				self.keyboard.input.history_index = self.keyboard.input.history_index + 1
-				if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
-					self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
-					self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
-				end
+		if self.timeout > .75 then
+			if mouse.held then
+				scrollbarMath(self, args[1], 1)
+			else
+				self.timeout = nil
+				return true
 			end
 		end
+	end
+
+	function scrollbarHoldDown(self, dt, mouse, args)
+		if not self.timeout then self.timeout = 0 end
+		self.timeout = self.timeout + dt
 		
-		self.keyboard.input.data          = ""
-		self.keyboard.input.current_width = 0
-		self.cursor.pos                   = 0
-		self.keyboard.highlight           = false
-	end,
-	shift_enter = function(self)
-	end,
-	up = function(self)
-		local input, history_len
-		
-		input       = self.keyboard.input
-		history_len = #input.history
-		
-		if history_len > 0 then
-			self.keyboard.input.data          = input.history[input.history_index].data
-			self.keyboard.input.current_width = input.history[input.history_index].cur_width
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
-			self.keyboard.highlight           = false
-			self.cursor.pos                   = self.keyboard.input.data:len()
-		end
-	end,
-	down = function(self) 
-		local input, history_len
-		
-		input       = self.keyboard.input
-		history_len = #input.history
-		
-		if history_len > 0 then
-			self.keyboard.input.data          = input.history[input.history_index].data
-			self.keyboard.input.current_width = input.history[input.history_index].cur_width
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
-			self.keyboard.highlight           = false
-			self.cursor.pos                   = self.keyboard.input.data:len()
-		end 
-	end,
-	left = function(self)
-		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
-		self.cursor.timer = 0
-		self.cursor.showing = true
-	end,
-	right = function(self)
-		self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
-		self.cursor.timer = 0
-		self.cursor.showing = true
-	end,
-	shift_left = function(self)
-		self.cursor.pos = 0
-		self.cursor.timer = 0
-		self.cursor.showing = true
-		self.keyboard.highlight = false
-	end,
-	shift_right = function(self)
-		self.cursor.pos = self.keyboard.input.data:len()
-		self.cursor.timer = 0
-		self.cursor.showing = true
-		self.keyboard.highlight = false
-	end,
-	shift_up = function(self)
-		local input, history_len
-		
-		input       = self.keyboard.input
-		history_len = #input.history
-		
-		if history_len > 0 then
-			self.keyboard.input.data          = input.history[input.history_index].data
-			self.keyboard.input.current_width = input.history[input.history_index].cur_width
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 10)
-			self.keyboard.highlight           = false
-			self.cursor.pos                   = self.keyboard.input.data:len()
-		end
-	end,
-	shift_down = function(self)
-		local input, history_len
-		
-		input       = self.keyboard.input
-		history_len = #input.history
-		
-		if history_len > 0 then
-			self.keyboard.input.data          = input.history[input.history_index].data
-			self.keyboard.input.current_width = input.history[input.history_index].cur_width
-			self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 10)
-			self.keyboard.highlight           = false
-			self.cursor.pos                   = self.keyboard.input.data:len()
-		end 
-	end,
-	ctrl_c = function(self)
-		if self.keyboard.highlight then
-			love.system.setClipboardText(self.keyboard.input.data)
-		end
-	end,
-	ctrl_v = function(self)
-		local paste = love.system.getClipboardText()
-		
-		if self.keyboard.highlight then
-			if paste:find("\n") then
-				for text in paste:gmatch("([^\n]*)\n") do
-					text = self:submit(text)
-					if text then
-						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
-						self.keyboard.input.history_index = self.keyboard.input.history_index + 1
-						multiline = Line(self, text)
-						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
-						self.window.scroll_offset = self.window.scroll_offset + 1
-						self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
-					end
-				end
-				paste = paste:match("\n([^\n]*)$")
+		if (self.timeout > .75) then
+			if mouse.held then
+				scrollbarMath(self, args[1], -1)
+			else
+				self.timeout = nil
+				return true
 			end
-			
-			self.keyboard.input.data = paste
-			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
-			self.window.scroll_offset = self.window.scroll_offset + math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
-			self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
-			self.cursor.pos = self.keyboard.input.data:len()
-			self.keyboard.highlight = false
+		end
+	end
+
+	function titlebarGrab(self, dt, mouse, args)
+		return "titlebarHold"
+	end
+
+	function titlebarHold(self, dt, mouse, args)
+		self.offset = self.offset == nil and mouse.loc:clone() or self.offset
+		if not mouse.held then
+			self.offset = nil
 		else
-			if paste:find("\n") then
-				for text in paste:gmatch("([^\n]*)\n") do
-					self.keyboard.input.data = self.keyboard.input.data ~= "" and (self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. text or self.keyboard.input.data:sub(1, self.cursor.pos) .. text .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())) or text
-					self.keyboard.input.data = self:submit(self.keyboard.input.data)
-					if self.keyboard.input.data then
-						self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
-						self.keyboard.input.history_index = self.keyboard.input.history_index + 1
-						multiline = Line(self, self.keyboard.input.data)
-						self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
-						self.window.scroll_offset = self.window.scroll_offset + 1
-						self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
-					end
-					self.keyboard.input.data = ""
-				end
-				paste = paste:match("\n([^\n]*)$")
+			local x, y = mouse.global.x - self.offset.x, mouse.global.y - self.offset.y
+			local _, _, flags = love.window.getMode()
+			args[1].window.display = flags.display
+			love.window.setPosition(x, y, args[1].window.display)
+			return "titlebarHold", x, y
+		end
+	end
+
+	function exitButton(self, dt, mouse, args)
+		love.event.quit(0)
+		return true
+	end
+
+	function maxButton(self, dt, mouse, args)
+		if args[1].window.is_maximized then
+			local x, y, w, h = args[1].window.restore_size[1], args[1].window.restore_size[2], args[1].window.restore_size[3], args[1].window.restore_size[4]
+			Window:move(x, y)
+			Window:resize(w, h)
+			c:resize(w, h)
+			args[1].window.is_maximized = false
+			args[1].window.restore_size = nil
+		else
+			local w, h, _ = love.window.getMode()
+			local x, y = love.window.getPosition()
+			local sx, sy, sw, sh = Window:getUsableBounds(args[1].window.display)
+			Window:move(sx, sy)
+			Window:resize(sw, sh)
+			args[1].window.restore_size = {x, y, w, h}
+			args[1].window.is_maximized = true
+			c:resize(sw, sh)
+		end
+		return true
+	end
+
+	function minButton(self, dt, mouse, args)
+		love.window.minimize()
+		return true
+	end
+
+	control = {
+		backspace = function(self)
+			local text_len, decrease, text
+			
+			text     = self.keyboard.input.data
+			text_len = text:len()
+			decrease = self.keyboard.input.current_width - self.font.width
+			
+			if self.keyboard.highlight then
+				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars))
+				self.keyboard.input.data = ""
+				self.keyboard.input.current_width = 0
 				self.cursor.pos = 0
+				self.keyboard.highlight = false
+			else
+				self.keyboard.input.data = self.cursor.pos == text_len and text:sub(1, text_len - 1) or text:sub(1, self.cursor.pos - 1) .. text:sub(self.cursor.pos + 1, text_len)
+				self.keyboard.input.current_width = decrease < 0 and (self.keyboard.wrap_width_in_chars - 1) * self.font.width or decrease
+				self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
+				self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset - ((self.keyboard.input.current_width == (self.keyboard.wrap_width_in_chars - 1) * self.font.width) and 1 or 0))
 			end
 			
-			local cur_height = math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
-			self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. paste or self.keyboard.input.data:sub(1, self.cursor.pos) .. paste .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
-			self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
-			self.cursor.pos = self.cursor.pos + paste:len()
-			self.window.scroll_offset = self.window.scroll_offset + (math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars) - cur_height)
-			self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
 			self.cursor.timer = 0
 			self.cursor.showing = true
-		end
-	end,
-	ctrl_x = function(self)
-		if self.keyboard.highlight then
-			love.system.setClipboardText(self.keyboard.input.data)
-			self.keyboard.input.data = ""
-			self.keyboard.input.current_width = 0
-			self.cursor.pos = 0
-			self.keyboard.highlight = false
-		end
-	end,
-	ctrl_a = function(self)
-		self.keyboard.highlight = true
-	end
-}
+		end,
+		enter = function(self)
+			local input, multiline
+			
+			input = self.keyboard.input
 
+			multiline = Line(self, input.data)
+
+			for i, line in ipairs(multiline) do
+				local res = self:submit(line)
+				
+				if res then
+					local output, res_type
+					
+					res_type = type(res)
+					output   = res_type == "Line" and res or (res_type == "string" and Line(self, res) or Line(self, stringify(res)))
+					if #self.keyboard.output >= self.keyboard.max_output + self.window.full_line_amount then table.remove(self.keyboard.output, 1) end
+					self.keyboard.output[#self.keyboard.output + 1] = output
+					self.keyboard.input.history[#self.keyboard.input.history + 1] = { data = input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, output:len()) }
+					self.keyboard.input.history_index = self.keyboard.input.history_index + 1
+					if #self.keyboard.output * self.font.height > round(self.window.height - self.window.titlebar.size - self.font.height) then
+						self.window.scroll_offset = constrain(0, self.keyboard.max_output, self.window.scroll_offset + 1)
+						self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+					end
+				end
+			end
+			
+			self.keyboard.input.data          = ""
+			self.keyboard.input.current_width = 0
+			self.cursor.pos                   = 0
+			self.keyboard.highlight           = false
+		end,
+		shift_enter = function(self)
+		end,
+		up = function(self)
+			local input, history_len
+			
+			input       = self.keyboard.input
+			history_len = #input.history
+			
+			if history_len > 0 then
+				self.keyboard.input.data          = input.history[input.history_index].data
+				self.keyboard.input.current_width = input.history[input.history_index].cur_width
+				self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 1)
+				self.keyboard.highlight           = false
+				self.cursor.pos                   = self.keyboard.input.data:len()
+			end
+		end,
+		down = function(self) 
+			local input, history_len
+			
+			input       = self.keyboard.input
+			history_len = #input.history
+			
+			if history_len > 0 then
+				self.keyboard.input.data          = input.history[input.history_index].data
+				self.keyboard.input.current_width = input.history[input.history_index].cur_width
+				self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 1)
+				self.keyboard.highlight           = false
+				self.cursor.pos                   = self.keyboard.input.data:len()
+			end 
+		end,
+		left = function(self)
+			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos - 1)
+			self.cursor.timer = 0
+			self.cursor.showing = true
+		end,
+		right = function(self)
+			self.cursor.pos = constrain(0, self.keyboard.input.data:len(), self.cursor.pos + 1)
+			self.cursor.timer = 0
+			self.cursor.showing = true
+		end,
+		shift_left = function(self)
+			self.cursor.pos = 0
+			self.cursor.timer = 0
+			self.cursor.showing = true
+			self.keyboard.highlight = false
+		end,
+		shift_right = function(self)
+			self.cursor.pos = self.keyboard.input.data:len()
+			self.cursor.timer = 0
+			self.cursor.showing = true
+			self.keyboard.highlight = false
+		end,
+		shift_up = function(self)
+			local input, history_len
+			
+			input       = self.keyboard.input
+			history_len = #input.history
+			
+			if history_len > 0 then
+				self.keyboard.input.data          = input.history[input.history_index].data
+				self.keyboard.input.current_width = input.history[input.history_index].cur_width
+				self.keyboard.input.history_index = constrain(1, history_len, input.history_index - 10)
+				self.keyboard.highlight           = false
+				self.cursor.pos                   = self.keyboard.input.data:len()
+			end
+		end,
+		shift_down = function(self)
+			local input, history_len
+			
+			input       = self.keyboard.input
+			history_len = #input.history
+			
+			if history_len > 0 then
+				self.keyboard.input.data          = input.history[input.history_index].data
+				self.keyboard.input.current_width = input.history[input.history_index].cur_width
+				self.keyboard.input.history_index = constrain(1, history_len, input.history_index + 10)
+				self.keyboard.highlight           = false
+				self.cursor.pos                   = self.keyboard.input.data:len()
+			end 
+		end,
+		ctrl_c = function(self)
+			if self.keyboard.highlight then
+				love.system.setClipboardText(self.keyboard.input.data)
+			end
+		end,
+		ctrl_v = function(self)
+			local paste = love.system.getClipboardText()
+			
+			if self.keyboard.highlight then
+				if paste:find("\n") then
+					for text in paste:gmatch("([^\n]*)\n") do
+						text = self:submit(text)
+						if text then
+							self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = text, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, text:len())}
+							self.keyboard.input.history_index = self.keyboard.input.history_index + 1
+							multiline = Line(self, text)
+							self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+							self.window.scroll_offset = self.window.scroll_offset + 1
+							self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+						end
+					end
+					paste = paste:match("\n([^\n]*)$")
+				end
+				
+				self.keyboard.input.data = paste
+				self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
+				self.window.scroll_offset = self.window.scroll_offset + math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
+				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+				self.cursor.pos = self.keyboard.input.data:len()
+				self.keyboard.highlight = false
+			else
+				if paste:find("\n") then
+					for text in paste:gmatch("([^\n]*)\n") do
+						self.keyboard.input.data = self.keyboard.input.data ~= "" and (self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. text or self.keyboard.input.data:sub(1, self.cursor.pos) .. text .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())) or text
+						self.keyboard.input.data = self:submit(self.keyboard.input.data)
+						if self.keyboard.input.data then
+							self.keyboard.input.history[#self.keyboard.input.history + 1] = {data = self.keyboard.input.data, cur_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len())}
+							self.keyboard.input.history_index = self.keyboard.input.history_index + 1
+							multiline = Line(self, self.keyboard.input.data)
+							self.keyboard.output[#self.keyboard.output + 1] = multiline[1]
+							self.window.scroll_offset = self.window.scroll_offset + 1
+							self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+						end
+						self.keyboard.input.data = ""
+					end
+					paste = paste:match("\n([^\n]*)$")
+					self.cursor.pos = 0
+				end
+				
+				local cur_height = math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars)
+				self.keyboard.input.data = self.cursor.pos == self.keyboard.input.data:len() and self.keyboard.input.data .. paste or self.keyboard.input.data:sub(1, self.cursor.pos) .. paste .. self.keyboard.input.data:sub(self.cursor.pos + 1, self.keyboard.input.data:len())
+				self.keyboard.input.current_width = cycle(0, self.keyboard.wrap_width_in_chars, self.keyboard.input.data:len()) * self.font.width
+				self.cursor.pos = self.cursor.pos + paste:len()
+				self.window.scroll_offset = self.window.scroll_offset + (math.floor(self.keyboard.input.data:len() / self.keyboard.wrap_width_in_chars) - cur_height)
+				self.scrollbar.bar.y      = round(map(0, self.keyboard.max_output, self.scrollbar.min, self.scrollbar.max, self.window.scroll_offset))
+				self.cursor.timer = 0
+				self.cursor.showing = true
+			end
+		end,
+		ctrl_x = function(self)
+			if self.keyboard.highlight then
+				love.system.setClipboardText(self.keyboard.input.data)
+				self.keyboard.input.data = ""
+				self.keyboard.input.current_width = 0
+				self.cursor.pos = 0
+				self.keyboard.highlight = false
+			end
+		end,
+		ctrl_a = function(self)
+			self.keyboard.highlight = true
+		end
+	}
 end
 -----CLASSES-----
 
